@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 — Memory Forensics | DFIR Study Notes</title>
+<meta name="description" content="Educational defensive DFIR study notes — detection and forensics focus.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html" aria-current="page">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="">
+
+<header class="page-header">
+  <span class="badge">Section 05</span>
+  <h1>Memory Forensics</h1>
+  <p class="subtitle">Injection clues, process lists, and malfind workflows</p>
+</header>
+<p><a href="pdfs/05-memory-forensics.pdf">Download PDF</a> · <a href="overview.html">Overview</a></p>
+
+<div class="objectives"><h2>Learning objectives</h2><ul><li>Interpret RWX / private / MZ clues as injection leads</li><li>Use pslist vs psscan (and friends) to find hidden or exited processes</li><li>Apply malfind / vadinfo / dlllist / netscan in a logical order</li><li>Know when and how analysts dump suspicious regions for file analysis</li></ul></div>
+
+<h2>Why memory matters</h2>
+<p>Fileless and injected payloads may never exist as a clean PE on disk. Credentials, beacon configuration, and process hollowing evidence often live primarily in RAM. Acquire memory early; analyze with Volatility 2/3, MemProcFS, or commercial EDR memory modules.</p>
+
+<h2>Injection / hollowing clues</h2>
+<ul><li><b>RWX</b> — PAGE_EXECUTE_READWRITE is unusual for ordinary modules; often flagged by malfind</li><li><b>Private memory</b> — not mapped to a file on disk (contrast with normal DLLs)</li><li><b>MZ header</b> — PE in an unexpected memory region suggests reflective load or unpacking</li><li><b>Process hollowing</b> — adversaries may start a legitimate process then replace its memory; name looks trusted, memory map does not</li></ul>
+
+<h2>Core plugins / commands (conceptual)</h2>
+<div class="table-wrap"><table><thead><tr><th>Plugin / view</th><th>Purpose</th><th>DFIR tip</th></tr></thead><tbody><tr><td>pslist</td><td>Walk active process list structures</td><td>What the OS 'thinks' is running</td></tr><tr><td>psscan</td><td>Pool-tag / scan for EPROCESS objects</td><td>Reveals hidden, exited, or DKOM-unlinked processes — compare to pslist</td></tr><tr><td>pstree</td><td>Parent/child relationships</td><td>Spot odd parents (e.g., office → cmd → powershell)</td></tr><tr><td>cmdline</td><td>Process command lines from memory</td><td>Catch encoded PowerShell / dump-tool IOC strings</td></tr><tr><td>dlllist</td><td>Loaded modules</td><td>Missing on-disk path; unsigned; odd Temp paths</td></tr><tr><td>vadinfo / vadwalk</td><td>Virtual address descriptors</td><td>Permissions and mapped files per region</td></tr><tr><td>malfind</td><td>Heuristic: executable private VADs, often MZ</td><td>PAGE_EXECUTE_READWRITE + private + MZ = investigate</td></tr><tr><td>netscan / netstat</td><td>Network endpoints in memory</td><td>C2 IPs even if disk logs rotated</td></tr></tbody></table></div>
+
+<h3>pslist vs psscan — exam favorite</h3>
+<p>If a process appears in <b>psscan</b> but not <b>pslist</b>, suspect hiding (e.g., DKOM) or a recently exited process still lingering in memory. Always reconcile both lists and investigate discrepancies.</p>
+
+<h2>malfind workflow</h2>
+<ul><li>Run malfind; prioritize regions with EXECUTE_READWRITE, not file-backed, containing MZ</li><li>Dump the region (Volatility malfind dump options / <code>windows.malfind --dump</code> style workflows) to a file</li><li>Hash the dump; run strings/FLOSS/VT/YARA; rebuild PE if needed</li><li>Tie owning process to netscan and pstree for C2 and patient-zero path</li></ul>
+
+<h2>How do I prove injection?</h2>
+<ul><li>Memory: malfind hit with RWX + MZ in process that should not have private PE images</li><li>Correlate: EDR Sysmon 8/10 (CreateRemoteThread / ProcessAccess) if available around the same time</li><li>Disk optional: dropper may be gone — memory may be the only proof</li><li>Network: netscan shows unexpected remote endpoints owned by the hollowed/injected process</li></ul>
+
+<h2>Common exam traps</h2>
+<ul><li>Treating every RWX region as malware (some legitimate software uses RWX briefly)</li><li>Using only pslist and missing hidden processes</li><li>Rebooting before memory acquisition when injection is suspected</li><li>Ignoring cmdline in memory when disk Prefetch was cleared</li><li>Forgetting to dump malfind regions for offline PE/YARA analysis</li></ul>
+
+<div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Clues: RWX + private + MZ</li><li>pslist vs psscan → find hidden/exited/DKOM</li><li>malfind → dump → strings/YARA/VT</li><li>Also: pstree, cmdline, dlllist, netscan, vadinfo</li><li>Memory first when fileless suspected</li></ul></div>
+
+<h2>Mini self-check</h2>
+<p>Try answering without looking back. Expand each item for the answer.</p>
+<details class="self-check"><summary><b>Q1.</b> What three memory characteristics often appear together in malfind hits?</summary><div class="answer"><b>A1.</b> Executable permissions such as PAGE_EXECUTE_READWRITE (RWX), private (not file-mapped) memory, and an MZ/PE header.</div></details>
+<details class="self-check"><summary><b>Q2.</b> What does a process in psscan but not pslist suggest?</summary><div class="answer"><b>A2.</b> Possible process hiding (e.g., DKOM) or an exited process still recoverable — investigate the discrepancy.</div></details>
+<details class="self-check"><summary><b>Q3.</b> Why is process hollowing hard to spot by process name alone?</summary><div class="answer"><b>A3.</b> The process name/path may be a legitimate binary while the memory contents were replaced with malicious code.</div></details>
+<details class="self-check"><summary><b>Q4.</b> Which plugin helps link an injected process to C2 IPs still in RAM?</summary><div class="answer"><b>A4.</b> netscan (or equivalent network connection enumeration from memory).</div></details>
+<details class="self-check"><summary><b>Q5.</b> After malfind flags a region, what is the usual next forensic step?</summary><div class="answer"><b>A5.</b> Dump the memory region to disk and analyze the dump (strings, YARA, rebuild PE, VT) while correlating process tree and network.</div></details>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02 — Triage & Collection | DFIR Study Notes</title>
+<meta name="description" content="Educational defensive DFIR study notes — detection and forensics focus.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html" aria-current="page">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="">
+
+<header class="page-header">
+  <span class="badge">Section 02</span>
+  <h1>Triage &amp; Collection</h1>
+  <p class="subtitle">Velociraptor and KAPE for scalable DFIR acquisition</p>
+</header>
+<p><a href="pdfs/02-triage-collection.pdf">Download PDF</a> · <a href="overview.html">Overview</a></p>
+
+<div class="objectives"><h2>Learning objectives</h2><ul><li>Choose Velociraptor vs KAPE for live hunt vs targeted disk triage</li><li>Explain KAPE Target vs Module and name key collectors/parsers</li><li>List high-value Windows artifacts to collect first</li><li>Preserve forensic soundness: order of volatility and documentation</li></ul></div>
+
+<h2>Triage mindset</h2>
+<p>Triage is not full forensics — it is <b>enough evidence, fast enough</b> to decide containment and next deep-dives. Over-collection wastes time; under-collection loses volatile proof. Prefer: memory (if safe) → critical logs/registry/MFT → broader disk.</p>
+
+<h2>Velociraptor</h2>
+<p>Velociraptor is an open-source endpoint visibility and DFIR platform. For exams, remember four verbs: <b>collect</b>, <b>hunt</b>, <b>live response</b>, <b>artifacts</b>.</p>
+<div class="table-wrap"><table><thead><tr><th>Capability</th><th>What it means</th><th>When to use</th></tr></thead><tbody><tr><td>Collection</td><td>Pull defined artifact sets from endpoints to the server</td><td>Known IOCs; scoped incident hosts</td></tr><tr><td>Hunt</td><td>Query many endpoints for a condition (file hash, mutex, reg key)</td><td>Fleet-wide: 'who has this beacon path?'</td></tr><tr><td>Live response</td><td>Interactive investigation on a live host via VQL</td><td>Hot box where reboot would destroy evidence</td></tr><tr><td>Artifacts</td><td>Reusable VQL packs (Windows.EventLogs, prefetch, etc.)</td><td>Standardize what juniors collect</td></tr></tbody></table></div>
+<p>Velociraptor shines when you need <b>scale</b> and <b>repeatable hunts</b>. Pair with offline parsers (or export) when deep timeline work is needed on a workstation.</p>
+
+<h2>KAPE — Eric Zimmerman's triage kit</h2>
+<p>KAPE (Kroll Artifact Parser and Extractor) separates <b>what to gather</b> from <b>how to parse</b>:</p>
+<ul><li><b>Targets</b> — collection definitions (copy/compound sources from disk)</li><li><b>Modules</b> — post-processing tools run against collected data</li></ul>
+
+<h3>High-yield Targets (collect)</h3>
+<div class="table-wrap"><table><thead><tr><th>Target area</th><th>Why it matters</th><th>Typical contents</th></tr></thead><tbody><tr><td>MFT ($MFT)</td><td>Filesystem timeline; deleted file metadata remnants</td><td>Record of create/modify/access/entry; parent paths</td></tr><tr><td>Event Logs</td><td>Execution, logon, service, PowerShell, Sysmon</td><td>Security, System, Application, Microsoft-Windows-*</td></tr><tr><td>Registry</td><td>Persistence, user activity, system config</td><td>SYSTEM, SOFTWARE, SAM, NTUSER.DAT, UsrClass.dat</td></tr><tr><td>Prefetch</td><td>Evidence of program execution (Windows client)</td><td>*.pf with run count and last run times</td></tr><tr><td>Amcache</td><td>Program inventory / execution-related metadata</td><td>Amcache.hve — full paths, SHA1 (versions vary)</td></tr></tbody></table></div>
+
+<h3>High-yield Modules (parse)</h3>
+<div class="table-wrap"><table><thead><tr><th>Module / tool</th><th>Input</th><th>Output value</th></tr></thead><tbody><tr><td>MFTECmd</td><td>$MFT (and related)</td><td>CSV/bodyfile timelines; find staging paths, deleted names</td></tr><tr><td>EvtxECmd</td><td>Windows EVTX</td><td>Normalized CSV; easier hunting across Event IDs</td></tr><tr><td>RECmd / Registry Explorer</td><td>Registry hives</td><td>Batch queries for Run keys, services, userassist, etc.</td></tr></tbody></table></div>
+
+<h2>Suggested collection order (practical)</h2>
+<ul><li>Document: hostname, time sync, who authorized collection, hash of images/exports</li><li>If memory in scope: capture RAM before heavy disk thrashing when possible</li><li>KAPE Targets for MFT + EVTX + Registry + Prefetch + Amcache on impacted Windows hosts</li><li>Run Modules; feed Hayabusa / timelines; escalate interesting hosts to full disk/memory</li><li>Velociraptor hunt across estate for the same IOCs discovered in triage</li></ul>
+
+<h2>How do I prove X?</h2>
+<ul><li><b>Program ran:</b> Prefetch + Amcache + 4688/Sysmon 1 + UserAssist / Bam — prefer corroboration</li><li><b>File existed then deleted:</b> MFT + USN Journal via MFTECmd workflow; $LogFile if available</li><li><b>Fleet still infected:</b> Velociraptor hunt for hash/path/mutex; do not assume one host = all</li></ul>
+
+<h2>Common exam traps</h2>
+<ul><li>Confusing Target (collect) with Module (parse)</li><li>Skipping Prefetch on servers where Prefetch may be disabled — know the OS role</li><li>Collecting only Security.evtx and missing Sysmon / PowerShell / Task Scheduler logs</li><li>Forgetting chain of custody and hashing of collected archives</li><li>Running heavy Module parsing on the victim (prefer collect → analyze offline)</li></ul>
+
+<div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Velociraptor: collect | hunt | live response | artifacts</li><li>KAPE Target = collect (MFT, EVTX, Registry, Prefetch, Amcache)</li><li>KAPE Module = parse (MFTECmd, EvtxECmd, RECmd)</li><li>Order of volatility: memory → logs/registry → full disk</li><li>Triage = decide next steps, not write the full report yet</li></ul></div>
+
+<h2>Mini self-check</h2>
+<p>Try answering without looking back. Expand each item for the answer.</p>
+<details class="self-check"><summary><b>Q1.</b> Differentiate a KAPE Target from a KAPE Module with one example each.</summary><div class="answer"><b>A1.</b> Target collects (e.g., Event Logs / MFT). Module parses (e.g., EvtxECmd / MFTECmd).</div></details>
+<details class="self-check"><summary><b>Q2.</b> Name five high-value Windows collection areas commonly targeted by KAPE.</summary><div class="answer"><b>A2.</b> MFT, Event Logs, Registry, Prefetch, Amcache.</div></details>
+<details class="self-check"><summary><b>Q3.</b> Which Velociraptor capability finds a known malicious mutex across 500 hosts?</summary><div class="answer"><b>A3.</b> Hunt (artifact/VQL hunt for that mutex).</div></details>
+<details class="self-check"><summary><b>Q4.</b> Why parse EVTX offline with EvtxECmd after KAPE collection?</summary><div class="answer"><b>A4.</b> Normalize and search at scale without altering the victim; faster multi-ID analysis; preserves originals.</div></details>
+<details class="self-check"><summary><b>Q5.</b> What should you document before/during collection for court-ready work?</summary><div class="answer"><b>A5.</b> Authorization, time/timezone, hostname, collector identity, tool versions, hashes of exports, chain of custody.</div></details>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>

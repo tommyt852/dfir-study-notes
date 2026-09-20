@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06 — Data Exfiltration | DFIR Study Notes</title>
+<meta name="description" content="Educational defensive DFIR study notes — detection and forensics focus.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html" aria-current="page">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="">
+
+<header class="page-header">
+  <span class="badge">Section 06</span>
+  <h1>Data Exfiltration</h1>
+  <p class="subtitle">Staging, packing, transfer, rclone, and DNS tunnel evidence</p>
+</header>
+<p><a href="pdfs/06-data-exfiltration.pdf">Download PDF</a> · <a href="overview.html">Overview</a></p>
+
+<div class="objectives"><h2>Learning objectives</h2><ul><li>Describe the stage → pack → transfer exfil chain and artifacts at each step</li><li>Use MFT/USN and Hayabusa to time-box staging and tool use</li><li>Prove rclone-based exfil via config, cmdline, and Prefetch</li><li>Recognize DNS tunneling indicators and why adversaries use DNS</li></ul></div>
+
+<h2>Exfil chain</h2>
+<p>Adversaries may move data in three beats: <b>stage</b> (collect into a folder), <b>pack</b> (zip/7z/rar, often encrypted/passworded), <b>transfer</b> (DNS, HTTP, cloud sync tools like rclone, or other channels). IR should prove each beat when possible.</p>
+<div class="table-wrap"><table><thead><tr><th>Phase</th><th>Host artifacts</th><th>Network artifacts</th></tr></thead><tbody><tr><td>Stage</td><td>New directories; large file creates in MFT; archive tools Prefetch</td><td>Internal SMB/copy bursts</td></tr><tr><td>Pack</td><td>archive.exe / 7z / rar command lines (4688); encrypted containers</td><td>Usually still internal</td></tr><tr><td>Transfer</td><td>rclone/curl/custom beacon cmdline; rclone.conf</td><td>Egress to cloud/DNS/HTTP C2; large uploads</td></tr></tbody></table></div>
+
+<h2>MFT &amp; MFTECmd</h2>
+<p>The Master File Table records file metadata. Using <b>MFTECmd</b> (and USN Journal where available) analysts reconstruct create/modify/delete sequences and build timelines of staging folders — even when files were deleted after exfil.</p>
+<ul><li>Look for bursts of file creates in unusual paths (Temp, Public, hidden shares)</li><li>Note delete/rename around the transfer time — cleanup tradecraft</li><li>Combine MFT bodyfile with EVTX for process attribution</li></ul>
+
+<h2>Hayabusa triage</h2>
+<p>Hayabusa turns Windows event logs into a Sigma-oriented timeline. Useful rule categories for exfil-related investigations include:</p>
+<ul><li>Process execution / suspicious command lines</li><li>PowerShell activity</li><li>Service install / scheduled task creation (prep for long-haul exfil)</li><li>Credential dumping detections (often precedes data theft)</li><li>Sigma rule hits stacked by frequency and severity</li></ul>
+
+<h2>rclone — detection focus</h2>
+<p>Adversaries may use <b>rclone</b> to push staged data to cloud storage. Defenders prove use via:</p>
+<div class="table-wrap"><table><thead><tr><th>Artifact</th><th>Location / source</th><th>Value</th></tr></thead><tbody><tr><td>Config file</td><td><code>%APPDATA%\\rclone\\rclone.conf</code></td><td>Remotes, provider, sometimes token material — isolate carefully</td></tr><tr><td>Process create</td><td>4688 / Sysmon 1 cmdline</td><td>Shows sync/copy and destination remote name</td></tr><tr><td>Prefetch</td><td>rclone.exe Prefetch on clients</td><td>Execution evidence even if binary removed</td></tr><tr><td>Network</td><td>Proxy/firewall to S3/GDrive/etc. APIs</td><td>Volume + timing vs staging</td></tr></tbody></table></div>
+
+<h2>DNS tunneling — detection focus</h2>
+<p>Adversaries may encode data in DNS queries to bypass HTTP proxies when DNS resolution is allowed outbound. Prove with DNS telemetry + process evidence — not DNS alone.</p>
+<ul><li>Burst of <code>nslookup</code> or unusual resolver clients</li><li>Long, high-entropy, or Base64/Base32-like subdomain labels</li><li>Many unique subdomains under the same parent domain</li><li>Process attribution: which binary issued the queries (Sysmon 22 / EDR / memory netscan)</li><li>Volume far above baseline for that host/user</li></ul>
+
+<h2>How do I prove exfil?</h2>
+<ul><li>Timeline staging folder via MFTECmd → packing cmdline 4688 → transfer tool cmdline + egress logs</li><li>For rclone: conf + 4688 + Prefetch + cloud provider access logs if available</li><li>For DNS: DNS logs (encoded labels, burst, shared apex) + process that owns queries</li><li>Quantify business impact: which files (names/hashes from MFT) left the environment</li></ul>
+
+<h2>Common exam traps</h2>
+<ul><li>Calling any ZIP creation 'exfil' without transfer evidence</li><li>Ignoring encrypted archives (still prove stage+pack+egress metadata)</li><li>DNS tunneling conclusions without process attribution</li><li>Forgetting USN/MFT for deleted staging directories</li><li>Missing rclone.conf while hunting only for the EXE name</li></ul>
+
+<div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Chain: stage → pack → transfer</li><li>MFTECmd for file timeline / deleted staging</li><li>Hayabusa: exec, PS, service, task, cred-dump Sigma</li><li>rclone: %APPDATA%\\rclone\\rclone.conf + 4688 + Prefetch</li><li>DNS tunnel: bursts, encoded labels, same parent, process proof</li></ul></div>
+
+<h2>Mini self-check</h2>
+<p>Try answering without looking back. Expand each item for the answer.</p>
+<details class="self-check"><summary><b>Q1.</b> What are the three beats of a typical exfil chain?</summary><div class="answer"><b>A1.</b> Stage → pack → transfer.</div></details>
+<details class="self-check"><summary><b>Q2.</b> Where is the usual user-level rclone configuration path on Windows?</summary><div class="answer"><b>A2.</b> %APPDATA%\\rclone\\rclone.conf</div></details>
+<details class="self-check"><summary><b>Q3.</b> Name two DNS tunneling indicators beyond 'lots of DNS.'</summary><div class="answer"><b>A3.</b> Long/encoded subdomain labels; many unique labels under one parent; nslookup bursts; mismatch with baseline; tied to a suspicious process.</div></details>
+<details class="self-check"><summary><b>Q4.</b> How does MFTECmd help after adversaries delete a staging folder?</summary><div class="answer"><b>A4.</b> MFT/USN metadata can still show create/delete/rename history and names/paths for timeline reconstruction.</div></details>
+<details class="self-check"><summary><b>Q5.</b> Why might adversaries prefer DNS for transfer?</summary><div class="answer"><b>A5.</b> To bypass HTTP proxies/firewalls when DNS queries are permitted outbound.</div></details>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>

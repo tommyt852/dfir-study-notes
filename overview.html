@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview | DFIR Study Notes</title>
+<meta name="description" content="Educational defensive DFIR study notes — detection and forensics focus.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html" aria-current="page">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="wide-main">
+
+<header class="page-header">
+  <span class="badge">Study sheet</span>
+  <h1>DFIR Study Outline — Full Overview</h1>
+  <p class="subtitle">Exam-style study sheet covering all eight topic areas</p>
+</header>
+<p><a href="pdfs/00-overview.pdf">Download PDF</a></p>
+
+<div class="objectives"><h2>Learning objectives</h2><ul><li>Recall the full DFIR topic map and how domains connect</li><li>Map 'how do I prove X?' workflows to artifacts and Event IDs</li><li>Distinguish detection evidence from attacker tradecraft</li><li>Prioritize IR phases: contain first; memory before disk</li></ul></div>
+
+<div class="callout warn"><strong class="title">Scope reminder</strong><ul><li>This material covers detection, artifacts, and incident response only.</li><li>Attacker actions are phrased as 'adversaries may…' then pivot to evidence.</li><li>Tool/command names appear as IOC strings / exam knowledge — not how-to guides.</li></ul></div>
+
+<h2>1. Malware Analysis</h2>
+<h3>Static analysis</h3>
+<ul><li><b>FLOSS</b> — recovers decoded / stack / obfuscated strings adversaries try to hide</li><li><b>strings hunt</b> — URL, IP, domain, registry key, file path, mutex (IOC material)</li><li><b>PE header</b> — tools: <code>file</code>, <code>readpe</code>, <code>pefile</code>, <code>objdump</code>; compile time often fake; inspect sections, imports, entry point</li><li><b>Entropy &gt;7</b> — often packed/encrypted (heuristic only; not proof)</li></ul>
+<h3>Dynamic / C2</h3>
+<ul><li>Reputation: Hybrid Analysis, VirusTotal (score, AV labels, family, indicators)</li><li>RE: IDA, Ghidra, x64dbg; sandboxes: Any.Run, Hybrid Analysis, Joe Sandbox</li><li>C2 channels to recognize: HTTP, HTTPS, DNS, loopback, named pipe, beaconing patterns</li></ul>
+<p><a href="01-malware-analysis.html">Deep dive →</a></p>
+
+<h2>2. Triage &amp; Collection</h2>
+<ul><li><b>Velociraptor</b> — collection, hunt, live response, artifact packs</li><li><b>KAPE Target</b> = collect: MFT, Event Logs, Registry, Prefetch, Amcache</li><li><b>KAPE Module</b> = parse: MFTECmd, EvtxECmd, RECmd</li></ul>
+<p><a href="02-triage-collection.html">Deep dive →</a></p>
+
+<h2>3. Credential Dumping — Detection Only</h2>
+<ul><li>LSASS holds NTLM hashes, Kerberos material, tickets, and sometimes cleartext passwords in memory</li><li>SAM dump requires SYSTEM hive for decryption — look for both files as evidence of intent</li><li>Well-known credential-tool module strings (e.g. <code>sekurlsa::logonpasswords</code>) are <b>IOC hunt strings</b>, not recipes</li><li>Prove dump: Event <b>4688</b> (suspicious Process Command Line), Sysmon <b>10</b> (Process Access → lsass.exe), presence of <code>lsass.dmp</code>, anomalous handle access</li><li>DCSync: Security Event <b>4662</b> with replication rights GUIDs; unexpected account; NTDS hashes without interactive DC logon; correlate with <b>4624</b> Type 3 for source IP</li></ul>
+<p><a href="03-credential-dumping.html">Deep dive →</a></p>
+
+<h2>4. Persistence</h2>
+<ul><li>OS: service, scheduled task, Run key, Startup folder, WMI Filter+Consumer+Binding</li><li>Memory-only (reflective DLL / injection) — gone after reboot; disk persistence survives</li><li>Detect: 4698 (task created), 7045 (service installed), Sysmon, Autoruns anomalies, timeline</li><li>Always read: command line, path, creation time, account context</li></ul>
+<p><a href="04-persistence.html">Deep dive →</a></p>
+
+<h2>5. Memory Forensics</h2>
+<ul><li>Injection clues: RWX permissions, private memory, MZ header in unexpected regions</li><li>Process hollowing: legitimate process name with malicious memory map</li><li>Volatility/MemProcFS: pslist vs psscan (hidden/exited/DKOM), pstree, cmdline, dlllist, netscan, malfind</li><li>malfind: PAGE_EXECUTE_READWRITE + private + MZ; dump suspicious regions for further analysis</li></ul>
+<p><a href="05-memory-forensics.html">Deep dive →</a></p>
+
+<h2>6. Data Exfiltration</h2>
+<ul><li>Stage → pack (zip/7z/rar/encrypted) → transfer (DNS, rclone, HTTP, cloud)</li><li>MFT via MFTECmd: create/modify/delete/timeline/USN Journal</li><li>Hayabusa: Proc Exec, PowerShell, Service Install, Scheduled Task, Cred Dumping, Sigma</li><li>rclone evidence: <code>%APPDATA%\rclone\rclone.conf</code>, 4688 cmdline, Prefetch, destination logs</li><li>DNS tunnel: nslookup bursts, encoded subdomains, Base64/Base32-like labels, same parent domain + process evidence; motive = bypass proxy when DNS is allowed</li></ul>
+<p><a href="06-data-exfiltration.html">Deep dive →</a></p>
+
+<h2>7. Web Logs</h2>
+<ul><li>Apache common/combined fields; IIS W3C — <b>#Fields order can change</b>; always parse header</li><li>Filter by URI, status, IP, method, request id, timestamp</li><li>Web shell chain: HTTP request → IIS <code>w3wp.exe</code> → cmd/powershell child</li><li>Trap: HTTP 200 ≠ successful attack; request ≠ execution — correlate with process creation</li></ul>
+<p><a href="07-web-logs.html">Deep dive →</a></p>
+
+<h2>8. Incident Response (NIST)</h2>
+<ul><li>Phases: Preparation → Detection &amp; Analysis → Containment → Eradication → Recovery → Lessons Learned</li><li><b>Contain first</b> once scope is understood enough to act safely</li><li>Seven layers: network, endpoint, user, application, account, evidence, recovery</li><li>Separate <b>cause</b> from <b>damage</b>; evidence order: memory → logs → disk; maintain chain of custody</li><li>Accounts: disable, reset credentials, review privileges and authentication logs</li></ul>
+<p><a href="08-incident-response.html">Deep dive →</a></p>
+
+<hr class="sep">
+
+<h2>How Do I Prove X? — Evidence Map</h2>
+<p>Use this map under exam pressure. Each row is a claim you must support with artifacts, not assumptions.</p>
+<div class="table-wrap"><table><thead><tr><th>Claim</th><th>Primary evidence</th><th>Supporting / correlate</th></tr></thead><tbody><tr><td>LSASS credential access</td><td>Sysmon 10 → lsass.exe; 4688 cmdline (dump-tool patterns / known IOC strings)</td><td>lsass.dmp on disk; handle access; parent process tree</td></tr><tr><td>DCSync / AD replication abuse</td><td>4662 with DS-Replication-Get-Changes(-All) GUIDs; unexpected subject</td><td>4624 Type 3 source IP ≠ DC; no interactive DC logon for that account</td></tr><tr><td>New scheduled task</td><td>Security 4698; Task Scheduler Operational</td><td>XML action/cmdline; Autoruns; creation time vs user session</td></tr><tr><td>New service</td><td>System 7045; services registry</td><td>ImagePath; sc.exe / PowerShell 4688; service EXE hash</td></tr><tr><td>WMI persistence</td><td>WMI Filter + Consumer + Binding; Sysmon 19/20/21 if enabled</td><td>wmiprvse.exe children; permanent event subscription</td></tr><tr><td>Process injection / hollow</td><td>malfind RWX+MZ; pslist≠psscan; odd VAD</td><td>dlllist anomalies; parent/child mismatch; netscan C2</td></tr><tr><td>rclone / cloud exfil</td><td>4688 rclone cmdline; rclone.conf</td><td>Prefetch; network to cloud API; staged archives in MFT</td></tr><tr><td>DNS tunneling</td><td>DNS logs: bursts, long/encoded labels, same apex</td><td>Process making queries; unusual volume vs baseline</td></tr><tr><td>Web shell execution</td><td>IIS/Apache request + w3wp → cmd/powershell 4688</td><td>File on disk (aspx/php); 200 alone is insufficient</td></tr><tr><td>Packed malware</td><td>Entropy &gt;7 + few imports + overlay</td><td>Sandbox behavior; FLOSS decoded strings; VT family</td></tr></tbody></table></div>
+
+<h2>Core Event ID / Tool Cheat Sheet</h2>
+<div class="table-wrap"><table><thead><tr><th>ID / Tool</th><th>Meaning for DFIR</th></tr></thead><tbody><tr><td>4688</td><td>Process creation (enable command-line auditing) — primary execution evidence</td></tr><tr><td>Sysmon 1</td><td>Process create with hashes, parent, cmdline</td></tr><tr><td>Sysmon 10</td><td>ProcessAccess — critical for LSASS handle access detection</td></tr><tr><td>4662</td><td>Directory Service Access — DCSync / AD object ops (needs audit + SACL)</td></tr><tr><td>4624</td><td>Successful logon — correlate Logon ID with 4662 for DCSync source IP</td></tr><tr><td>4698</td><td>Scheduled task created</td></tr><tr><td>7045</td><td>A service was installed on the system</td></tr><tr><td>Sysmon 19/20/21</td><td>WMI event filter / consumer / binding (if configured)</td></tr><tr><td>KAPE + MFTECmd/EvtxECmd/RECmd</td><td>Collect then parse MFT, EVTX, Registry at scale</td></tr><tr><td>Velociraptor</td><td>Hunt + collect + live response across fleet</td></tr><tr><td>Hayabusa</td><td>EVTX → Sigma / timeline triage (cred dump, PS, service, task)</td></tr><tr><td>Autoruns</td><td>Enumerate persistence locations; baseline for anomalies</td></tr></tbody></table></div>
+
+<div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Contain early; acquire memory before reboot when possible</li><li>HTTP 200 ≠ web shell success; correlate process creation</li><li>Entropy &gt;7 = hint of packing, not proof of malice</li><li>4662 alone is noisy — filter replication GUIDs + non-DC subject + 4624 source</li><li>Memory-only persistence vanishes on reboot — document before power-off</li><li>Always: cmdline + path + time + account = four-tuple for every persistence find</li></ul></div>
+
+<h2>Mini self-check</h2>
+<p>Try answering without looking back. Expand each item for the answer.</p>
+<details class="self-check"><summary><b>Q1.</b> Name two artifacts that help prove LSASS was dumped without relying on antivirus alerts.</summary><div class="answer"><b>A1.</b> Sysmon Event 10 ProcessAccess targeting lsass.exe; Security 4688 with suspicious dump-related command lines; presence of an lsass.dmp (or similar) file; anomalous handle access patterns.</div></details>
+<details class="self-check"><summary><b>Q2.</b> Why must you correlate 4662 with 4624 when investigating possible DCSync?</summary><div class="answer"><b>A2.</b> 4662 shows directory object access (including replication rights) but usually not the source IP; 4624 with the same Logon ID (often Type 3) provides the network source — critical to see if it is a non-DC host.</div></details>
+<details class="self-check"><summary><b>Q3.</b> What is the difference between a KAPE Target and a KAPE Module?</summary><div class="answer"><b>A3.</b> Target = what to collect (MFT, EVTX, Registry, Prefetch, Amcache). Module = how to parse collected data (MFTECmd, EvtxECmd, RECmd).</div></details>
+<details class="self-check"><summary><b>Q4.</b> Why is HTTP 200 insufficient to prove a web shell executed?</summary><div class="answer"><b>A4.</b> A 200 only means the web server returned OK for the request; it does not prove server-side code ran a shell. Prove execution via child processes of w3wp.exe (cmd/powershell) and on-disk web shell files.</div></details>
+<details class="self-check"><summary><b>Q5.</b> List the NIST IR phases in order and state which action comes first once you can safely act.</summary><div class="answer"><b>A5.</b> Preparation → Detection &amp; Analysis → Containment → Eradication → Recovery → Lessons Learned. Contain first (once scope allows safe action).</div></details>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>

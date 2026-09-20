@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home | DFIR Study Notes</title>
+<meta name="description" content="Educational defensive DFIR study notes — detection and forensics focus.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html" aria-current="page">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="wide-main">
+
+<header class="page-header">
+  <span class="badge">Educational / Defensive</span>
+  <h1>DFIR Study Notes</h1>
+  <p class="subtitle">Digital Forensics &amp; Incident Response — detection focus. Exam-style revision with objectives, Event ID tables, prove-X workflows, traps, and self-checks.</p>
+</header>
+
+<div class="callout warn"><strong class="title">Scope reminder</strong><ul><li>This material covers detection, artifacts, and incident response only.</li><li>Attacker actions are phrased as 'adversaries may…' then pivot to evidence.</li><li>Tool/command names appear as IOC strings / exam knowledge — not how-to guides.</li></ul></div>
+
+<h2>Sections</h2>
+<div class="card-grid">
+<article class="card">
+  <h3><a href="overview.html">Overview &amp; Prove-X Map</a></h3>
+  <p>Full outline of all eight topics, evidence map, and Event ID / tool cheat sheet.</p>
+  <div class="card-links"><a href="overview.html">Open</a><a href="pdfs/00-overview.pdf">PDF</a></div>
+</article>
+<article class="card">
+  <h3><a href="01-malware-analysis.html">01 — Malware Analysis</a></h3>
+  <p>Static, dynamic, and C2 recognition</p>
+  <div class="card-links"><a href="01-malware-analysis.html">Open</a><a href="pdfs/01-malware-analysis.pdf">PDF</a></div>
+</article>
+<article class="card">
+  <h3><a href="02-triage-collection.html">02 — Triage &amp; Collection</a></h3>
+  <p>Velociraptor and KAPE</p>
+  <div class="card-links"><a href="02-triage-collection.html">Open</a><a href="pdfs/02-triage-collection.pdf">PDF</a></div>
+</article>
+<article class="card">
+  <h3><a href="03-credential-dumping.html">03 — Credential Dumping</a></h3>
+  <p>Detection &amp; forensics only</p>
+  <div class="card-links"><a href="03-credential-dumping.html">Open</a><a href="pdfs/03-credential-dumping.pdf">PDF</a></div>
+</article>
+<article class="card">
+  <h3><a href="04-persistence.html">04 — Persistence</a></h3>
+  <p>OS, disk, and memory-only</p>
+  <div class="card-links"><a href="04-persistence.html">Open</a><a href="pdfs/04-persistence.pdf">PDF</a></div>
+</article>
+<article class="card">
+  <h3><a href="05-memory-forensics.html">05 — Memory Forensics</a></h3>
+  <p>Injection, pslist/psscan, malfind</p>
+  <div class="card-links"><a href="05-memory-forensics.html">Open</a><a href="pdfs/05-memory-forensics.pdf">PDF</a></div>
+</article>
+<article class="card">
+  <h3><a href="06-data-exfiltration.html">06 — Data Exfiltration</a></h3>
+  <p>Stage → pack → transfer</p>
+  <div class="card-links"><a href="06-data-exfiltration.html">Open</a><a href="pdfs/06-data-exfiltration.pdf">PDF</a></div>
+</article>
+<article class="card">
+  <h3><a href="07-web-logs.html">07 — Web Logs</a></h3>
+  <p>Apache/IIS and web shells</p>
+  <div class="card-links"><a href="07-web-logs.html">Open</a><a href="pdfs/07-web-logs.pdf">PDF</a></div>
+</article>
+<article class="card">
+  <h3><a href="08-incident-response.html">08 — Incident Response</a></h3>
+  <p>NIST phases and seven layers</p>
+  <div class="card-links"><a href="08-incident-response.html">Open</a><a href="pdfs/08-incident-response.pdf">PDF</a></div>
+</article>
+</div>
+
+<h2>PDF downloads</h2>
+<p>All nine study PDFs are in the <a href="pdfs/"><code>pdfs/</code></a> folder (relative links; works offline).</p>
+<ul class="pdf-list">
+<li><a href="pdfs/00-overview.pdf">00-overview.pdf</a> <span class="section-num">— Full outline + prove-X map + cheat sheet</span></li>
+<li><a href="pdfs/01-malware-analysis.pdf">01-malware-analysis.pdf</a> <span class="section-num">— Malware Analysis</span></li>
+<li><a href="pdfs/02-triage-collection.pdf">02-triage-collection.pdf</a> <span class="section-num">— Triage &amp; Collection</span></li>
+<li><a href="pdfs/03-credential-dumping.pdf">03-credential-dumping.pdf</a> <span class="section-num">— Credential Dumping (detection)</span></li>
+<li><a href="pdfs/04-persistence.pdf">04-persistence.pdf</a> <span class="section-num">— Persistence</span></li>
+<li><a href="pdfs/05-memory-forensics.pdf">05-memory-forensics.pdf</a> <span class="section-num">— Memory Forensics</span></li>
+<li><a href="pdfs/06-data-exfiltration.pdf">06-data-exfiltration.pdf</a> <span class="section-num">— Data Exfiltration</span></li>
+<li><a href="pdfs/07-web-logs.pdf">07-web-logs.pdf</a> <span class="section-num">— Web Logs</span></li>
+<li><a href="pdfs/08-incident-response.pdf">08-incident-response.pdf</a> <span class="section-num">— Incident Response</span></li>
+</ul>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>

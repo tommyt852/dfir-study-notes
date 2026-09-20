@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>08 — Incident Response | DFIR Study Notes</title>
+<meta name="description" content="Educational defensive DFIR study notes — detection and forensics focus.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html" aria-current="page">08</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="">
+
+<header class="page-header">
+  <span class="badge">Section 08</span>
+  <h1>Incident Response</h1>
+  <p class="subtitle">NIST phases, seven layers, and evidence-first practice</p>
+</header>
+<p><a href="pdfs/08-incident-response.pdf">Download PDF</a> · <a href="overview.html">Overview</a></p>
+
+<div class="objectives"><h2>Learning objectives</h2><ul><li>Recite NIST IR phases and explain why containment comes early</li><li>Apply the seven response layers without mixing cause and damage</li><li>Order evidence collection by volatility and preserve chain of custody</li><li>Take correct account and network actions under pressure</li></ul></div>
+
+<h2>NIST IR phases</h2>
+<div class="table-wrap"><table><thead><tr><th>Phase</th><th>Goal</th><th>Example activities</th></tr></thead><tbody><tr><td>1. Preparation</td><td>Be ready before incidents</td><td>Playbooks, logging, contacts, golden images, retainers</td></tr><tr><td>2. Detection &amp; Analysis</td><td>Know it is real and scoped</td><td>Alert triage, IOC validation, timeline, impact estimate</td></tr><tr><td>3. Containment</td><td>Stop the bleeding</td><td>Isolate hosts, block IOC, disable accounts, network ACLs</td></tr><tr><td>4. Eradication</td><td>Remove cause</td><td>Delete persistence, rebuild, patch exploited vuln</td></tr><tr><td>5. Recovery</td><td>Restore safely</td><td>Restore from clean backups, monitor, staged reconnect</td></tr><tr><td>6. Lessons Learned</td><td>Improve</td><td>Postmortem, detection gaps, training, control upgrades</td></tr></tbody></table></div>
+
+<div class="callout"><strong class="title">Contain first</strong><ul><li>Once you understand enough to act without destroying critical evidence needlessly, contain.</li><li>Do not wait for perfect root-cause analysis while adversaries still have access.</li><li>Balance: quick containment vs preserving volatile memory — plan both in the playbook.</li></ul></div>
+
+<h2>Seven layers of response</h2>
+<div class="table-wrap"><table><thead><tr><th>Layer</th><th>Actions</th></tr></thead><tbody><tr><td>Network</td><td>Isolate VLAN/host; block IOC IPs/domains; sinkhole; disable VPN routes as needed</td></tr><tr><td>Endpoint</td><td>Collect (memory/logs/disk triage); analyze; remove persistence; reimage if required</td></tr><tr><td>User</td><td>Communicate phish context; password resets; awareness; verify unusual user actions</td></tr><tr><td>Application</td><td>Disable abused apps/features; rotate app secrets; patch; take web app offline if shelled</td></tr><tr><td>Account</td><td>Disable compromised accounts; reset creds; revoke sessions/tickets; review privileges</td></tr><tr><td>Evidence</td><td>Memory → logs → disk; hash; chain of custody; legal hold</td></tr><tr><td>Recovery</td><td>Restore services; heightened monitoring; validate clean before trust</td></tr></tbody></table></div>
+
+<h3>Cause vs damage</h3>
+<p>Keep two questions separate: <b>How did they get in / stay in?</b> (cause — vulnerability, phish, persistence) versus <b>What did they touch or steal?</b> (damage — data, systems, fraud). Eradication targets cause; business reporting needs damage. Mixing them muddies priorities.</p>
+
+<h2>Evidence order &amp; custody</h2>
+<ul><li><b>Memory first</b> (when relevant) — injection, fileless, credentials, encryption keys</li><li>Then <b>logs</b> (volatile rotating buffers, remote SIEM copies)</li><li>Then <b>disk</b> (full image or targeted KAPE/triage)</li><li>Document: who collected, when, tool/version, hashes, storage location, transfers</li><li>Chain of custody forms for evidence that may enter legal proceedings</li></ul>
+
+<h2>Account response checklist</h2>
+<ul><li>Disable or lock clearly compromised accounts</li><li>Reset passwords / rotate keys; revoke Kerberos tickets and refresh tokens</li><li>Review group membership and privileged roles (especially Domain Admins)</li><li>Inspect authentication logs (4624/4625, Azure/M365 sign-in) for parallel sessions</li><li>Watch for adversary recreation of accounts or new API tokens</li></ul>
+
+<h2>How do I prove the incident is contained?</h2>
+<ul><li>No further C2 from fleet hunts (Velociraptor / EDR) after blocks</li><li>Persistence inventories clean on previously affected hosts</li><li>Compromised accounts show no new authentications; resets completed</li><li>Monitoring rules fire on residual IOC tests (and you verify they work)</li><li>Business services restored from known-good sources with elevated watch</li></ul>
+
+<h2>Common exam traps</h2>
+<ul><li>Skipping containment until full malware RE is done</li><li>Reimaging before memory capture when fileless activity is likely</li><li>Resetting passwords without revoking existing tickets/sessions</li><li>Focusing only on the patient-zero host and missing lateral movement</li><li>Declaring recovery complete without lessons-learned / detection improvements</li></ul>
+
+<div class="callout ok"><strong class="title">Quick reference</strong><ul><li>NIST: Prep → Detect/Analyze → Contain → Eradicate → Recover → Lessons</li><li>Contain first (when safely possible)</li><li>7 layers: network, endpoint, user, app, account, evidence, recovery</li><li>Evidence: memory → logs → disk + chain of custody</li><li>Separate cause from damage; rotate creds AND revoke sessions</li></ul></div>
+
+<h2>Mini self-check</h2>
+<p>Try answering without looking back. Expand each item for the answer.</p>
+<details class="self-check"><summary><b>Q1.</b> List the six NIST IR phases in order.</summary><div class="answer"><b>A1.</b> Preparation; Detection &amp; Analysis; Containment; Eradication; Recovery; Lessons Learned.</div></details>
+<details class="self-check"><summary><b>Q2.</b> Which phase should generally begin as soon as you can act safely?</summary><div class="answer"><b>A2.</b> Containment.</div></details>
+<details class="self-check"><summary><b>Q3.</b> Name the seven response layers.</summary><div class="answer"><b>A3.</b> Network, endpoint, user, application, account, evidence, recovery.</div></details>
+<details class="self-check"><summary><b>Q4.</b> What is the preferred evidence collection order by volatility?</summary><div class="answer"><b>A4.</b> Memory → logs → disk (then maintain chain of custody).</div></details>
+<details class="self-check"><summary><b>Q5.</b> Besides resetting a password, what account action is often required after Kerberos exposure?</summary><div class="answer"><b>A5.</b> Revoke tickets/sessions (and review privileges / auth logs); disable the account if appropriate.</div></details>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>

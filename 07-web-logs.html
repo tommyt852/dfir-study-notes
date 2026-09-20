@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>07 — Web Logs | DFIR Study Notes</title>
+<meta name="description" content="Educational defensive DFIR study notes — detection and forensics focus.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html" aria-current="page">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="">
+
+<header class="page-header">
+  <span class="badge">Section 07</span>
+  <h1>Web Logs</h1>
+  <p class="subtitle">Apache/IIS parsing and web shell detection for DFIR</p>
+</header>
+<p><a href="pdfs/07-web-logs.pdf">Download PDF</a> · <a href="overview.html">Overview</a></p>
+
+<div class="objectives"><h2>Learning objectives</h2><ul><li>Parse Apache and IIS W3C fields correctly (especially changing #Fields)</li><li>Filter logs by URI, status, IP, method, time, and request id</li><li>Prove web shell execution via request + w3wp child process correlation</li><li>Avoid the HTTP 200 = success trap</li></ul></div>
+
+<h2>Why web logs matter</h2>
+<p>Web servers are frequent initial access and persistence points. Logs show who requested what, when, and with which response code — but they do <b>not</b> by themselves prove server-side command execution. Always be ready to join logs to host process evidence.</p>
+
+<h2>Apache logs (common / combined)</h2>
+<p>Typical combined-style fields include: client IP, identity, user, timestamp, request line (method, URI, protocol), status code, size, referrer, User-Agent. Exact format is controlled by the <code>LogFormat</code> directive — confirm the format string in scope.</p>
+<ul><li>Hunt: rare URIs, .php/.jsp/.aspx under upload dirs, admin panels from odd IPs</li><li>Status clusters: repeated 404 (scanning), sudden 500 (exploit fail), 200 on unusual paths</li><li>Methods: unexpected PUT/MOVE/PROPFIND on IIS/WebDAV-enabled servers</li></ul>
+
+<h2>IIS W3C logs — critical exam point</h2>
+<p>IIS W3C extended logs begin with directive lines. The <b>#Fields:</b> header defines column order — <b>and that order can change</b> across servers or after configuration updates. Never hard-code column positions from memory; always read #Fields for the file you are parsing.</p>
+<div class="table-wrap"><table><thead><tr><th>Common field</th><th>Use in investigations</th></tr></thead><tbody><tr><td>c-ip / s-ip</td><td>Client vs server address</td></tr><tr><td>cs-method</td><td>GET/POST/etc.</td></tr><tr><td>cs-uri-stem / cs-uri-query</td><td>Path and query string — web shell params often here</td></tr><tr><td>sc-status</td><td>HTTP status returned</td></tr><tr><td>cs-user-agent</td><td>Scanner vs browser vs automation</td></tr><tr><td>cs(Referer)</td><td>Navigation path / CSRF clues</td></tr><tr><td>time / date</td><td>Align with host 4688 — watch time zones</td></tr><tr><td>s-port / cs-version</td><td>Service identification</td></tr></tbody></table></div>
+
+<h3>Filtering strategy</h3>
+<ul><li>Narrow by time window of the alert</li><li>Filter URI keywords: cmd, whoami, eval, .ashx, unusual upload paths</li><li>Stack by IP and method; isolate rare combinations</li><li>Use request id / correlation id if present to join to app traces</li><li>Export candidates then pivot to the web server host</li></ul>
+
+<h2>Web shells — proving execution</h2>
+<p>Adversaries may upload or write a web shell and invoke it over HTTP. A useful evidence chain on IIS:</p>
+<ul><li><b>Request</b> in IIS log to a suspicious ASPX/ASHX/PHP path (often POST)</li><li><b>Worker</b>: <code>w3wp.exe</code> (IIS application pool process) handles the request</li><li><b>Execution</b>: child processes such as <code>cmd.exe</code> or <code>powershell.exe</code> under w3wp — visible in 4688/Sysmon 1</li><li><b>On disk</b>: the shell file itself (hash, MFT create time near first request)</li></ul>
+
+<div class="callout warn"><strong class="title">Critical misconception</strong><ul><li>HTTP 200 does NOT prove the attack succeeded — only that the server returned OK.</li><li>A request in the log does NOT equal command execution.</li><li>Prove execution with process creation (and preferably command line) tied to the worker process.</li><li>Conversely, execution might occur even if you have incomplete logs — host evidence still matters.</li></ul></div>
+
+<h2>How do I prove a web shell?</h2>
+<ul><li>Find first successful-looking request to the shell path in W3C/Apache logs</li><li>On the server: locate file; hash; check write source (WebDAV, upload bug, RCE)</li><li>Confirm w3wp (or apache/httpd/php-fpm) spawned shell/interpreter processes at that time</li><li>Trace what commands ran; assess data access; contain (take app offline / remove shell / rotate)</li></ul>
+
+<h2>Common exam traps</h2>
+<ul><li>Assuming fixed IIS column order without reading #Fields</li><li>Equating HTTP 200 with compromise success</li><li>Ignoring time zone skew between web logs and Windows event logs</li><li>Hunting only .aspx while shells use .ashx, images with appended payloads, etc.</li><li>Forgetting that reverse proxies change c-ip (use X-Forwarded-For if logged)</li></ul>
+
+<div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Always parse IIS #Fields — order can change</li><li>Filter: URI, status, IP, method, time, request id</li><li>Web shell chain: request → w3wp.exe → cmd/powershell</li><li>200 ≠ success; request ≠ execution</li><li>Join logs to 4688/Sysmon on the web server</li></ul></div>
+
+<h2>Mini self-check</h2>
+<p>Try answering without looking back. Expand each item for the answer.</p>
+<details class="self-check"><summary><b>Q1.</b> Why must analysts read the IIS #Fields line every time?</summary><div class="answer"><b>A1.</b> Because the field order can change across configurations; hard-coded positions mis-parse the log.</div></details>
+<details class="self-check"><summary><b>Q2.</b> What process typically hosts ASP.NET request execution on IIS?</summary><div class="answer"><b>A2.</b> w3wp.exe (IIS worker process for the application pool).</div></details>
+<details class="self-check"><summary><b>Q3.</b> What host evidence proves a web shell ran a command?</summary><div class="answer"><b>A3.</b> Child process creation (e.g., cmd.exe or powershell.exe) under w3wp.exe correlated in time with the request, plus the shell file on disk.</div></details>
+<details class="self-check"><summary><b>Q4.</b> Why is HTTP 200 insufficient proof of a successful exploit?</summary><div class="answer"><b>A4.</b> It only indicates the HTTP response code was OK; it does not prove malicious server-side execution.</div></details>
+<details class="self-check"><summary><b>Q5.</b> Name four useful filter dimensions for web log triage.</summary><div class="answer"><b>A5.</b> URI, status, IP, method (also timestamp and request id).</div></details>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04 — Persistence | DFIR Study Notes</title>
+<meta name="description" content="Educational defensive DFIR study notes — detection and forensics focus.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html" aria-current="page">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="">
+
+<header class="page-header">
+  <span class="badge">Section 04</span>
+  <h1>Persistence</h1>
+  <p class="subtitle">OS, disk, and memory-only persistence — detection focus</p>
+</header>
+<p><a href="pdfs/04-persistence.pdf">Download PDF</a> · <a href="overview.html">Overview</a></p>
+
+<div class="objectives"><h2>Learning objectives</h2><ul><li>Enumerate major Windows persistence classes and their artifacts</li><li>Map 4698, 7045, and Autoruns findings to proof workflows</li><li>Distinguish reboot-surviving vs memory-only persistence</li><li>Always record cmdline, path, time, and account for each finding</li></ul></div>
+
+<h2>Persistence classes</h2>
+<div class="table-wrap"><table><thead><tr><th>Class</th><th>Examples</th><th>Survives reboot?</th></tr></thead><tbody><tr><td>OS / autostart</td><td>Service, scheduled task, Run/RunOnce, Startup folder, WMI subscription</td><td>Yes (if written correctly)</td></tr><tr><td>Disk implants</td><td>Service EXE, DLL sideload pair, dropped EXE in Startup, modified LNK</td><td>Yes</td></tr><tr><td>Memory-only</td><td>Reflective DLL / process injection without disk write</td><td>No — gone after reboot</td></tr></tbody></table></div>
+<p>Memory-only techniques are why IR acquires <b>memory before rebooting</b> when feasible. Disk persistence is why Autoruns + registry + task/service inventories matter after reboot.</p>
+
+<h2>Registry Run keys</h2>
+<ul><li><code>HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run</code> (and RunOnce) — machine-wide</li><li><code>HKCU\\…\\Run</code> (and RunOnce) — per user (triggers on that user's logon)</li><li>Adversaries may add values pointing to dropped payloads or living-off-the-land binaries with odd arguments</li><li>Prove: hive export / RECmd / Sysmon registry events; note value name, data, LastWrite time, user hive owner</li></ul>
+
+<h2>Scheduled tasks</h2>
+<ul><li>Creation evidence: Security Event <b>4698</b> (Scheduled task created); also Task Scheduler Operational log</li><li>Enumeration: <code>schtasks</code>, Task Scheduler GUI, Autoruns 'Scheduled Tasks'</li><li>Read the task XML: action (exec/comhandler), arguments, run-as account, triggers, hidden flags</li><li>Adversaries may name tasks to blend with software updaters — judge by path + hash + creation time vs installers</li></ul>
+
+<h2>Services</h2>
+<ul><li>Installation evidence: System Event <b>7045</b> — 'A service was installed on the system'</li><li>Also: 4688 for <code>sc create</code> / PowerShell service cmdlets; Services registry keys under CurrentControlSet</li><li>Inspect ImagePath, ServiceDLL, Start type, account (LocalSystem is high impact)</li><li>Prove malice via unexpected path (Temp, Users\\Public), unsigned binary, rare hash</li></ul>
+
+<h2>WMI persistence</h2>
+<p>Classic pattern: <b>Event Filter</b> + <b>Consumer</b> + <b>Filter-to-Consumer Binding</b>. Adversaries may trigger on frequent events (e.g., timer or process start) to launch a payload. Detect with WMI Explorer / Autoruns WMI view / Sysmon 19–21 (if configured) / <code>wmiprvse.exe</code> spawning unusual children.</p>
+
+<h2>How do I prove persistence?</h2>
+<div class="table-wrap"><table><thead><tr><th>Mechanism</th><th>Primary proof</th><th>Always record</th></tr></thead><tbody><tr><td>Run key</td><td>Registry value + LastWrite; Sysmon 13 if available</td><td>cmdline/path, time, account hive</td></tr><tr><td>Scheduled task</td><td>4698 + task XML action</td><td>cmdline/path, time, run-as account</td></tr><tr><td>Service</td><td>7045 + ImagePath</td><td>cmdline/path, time, service account</td></tr><tr><td>WMI</td><td>Filter+Consumer+Binding triad</td><td>consumer command, filter query, time</td></tr><tr><td>Startup folder</td><td>File in Startup + MFT times + LNK targets</td><td>path, hash, creating process</td></tr><tr><td>Memory-only</td><td>malfind / EDR injection alerts pre-reboot</td><td>process, RWX region, network</td></tr></tbody></table></div>
+
+<h3>Investigation tools</h3>
+<ul><li><b>Autoruns / AutorunsSvc</b> — broad sweep; compare to known-good baseline</li><li>Registry Explorer / RECmd, schtasks, services.msc / sc.exe query, WMI Explorer</li><li>Timeline: combine 4698/7045/Sysmon with MFT for dropper write times</li></ul>
+
+<h2>Common exam traps</h2>
+<ul><li>Assuming reboot clears the threat (disk persistence remains)</li><li>Ignoring HKCU Run keys when the user still logs in</li><li>Reading service Name but not ImagePath</li><li>Missing WMI because it is not in 'Run' keys</li><li>Forgetting the four-tuple: cmdline, path, creation time, account</li></ul>
+
+<div class="callout ok"><strong class="title">Quick reference</strong><ul><li>4698 = task created; 7045 = service installed</li><li>Run/RunOnce: HKLM and HKCU</li><li>WMI = Filter + Consumer + Binding</li><li>Memory-only dies on reboot — image RAM first</li><li>Autoruns + Event IDs + timeline = prove it</li></ul></div>
+
+<h2>Mini self-check</h2>
+<p>Try answering without looking back. Expand each item for the answer.</p>
+<details class="self-check"><summary><b>Q1.</b> Which Event ID indicates a scheduled task was created?</summary><div class="answer"><b>A1.</b> 4698.</div></details>
+<details class="self-check"><summary><b>Q2.</b> Which Event ID indicates a service was installed?</summary><div class="answer"><b>A2.</b> 7045.</div></details>
+<details class="self-check"><summary><b>Q3.</b> Name the three WMI components used together for persistence.</summary><div class="answer"><b>A3.</b> Event Filter, Consumer, and Filter-to-Consumer Binding.</div></details>
+<details class="self-check"><summary><b>Q4.</b> Why might a host look 'clean' after reboot yet still be compromised?</summary><div class="answer"><b>A4.</b> Disk-based persistence (service/task/Run key/WMI/startup file) survives reboot; only memory-only implants are cleared.</div></details>
+<details class="self-check"><summary><b>Q5.</b> List the four fields you should always record for a persistence finding.</summary><div class="answer"><b>A5.</b> Command line, path, creation time, and account context.</div></details>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>
