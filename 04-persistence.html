@@ -52,6 +52,15 @@
 <h2>Common exam traps</h2>
 <ul><li>Assuming reboot clears the threat (disk persistence remains)</li><li>Ignoring HKCU Run keys when the user still logs in</li><li>Reading service Name but not ImagePath</li><li>Missing WMI because it is not in 'Run' keys</li><li>Forgetting the four-tuple: cmdline, path, creation time, account</li></ul>
 
+<h2>Lab takeaways</h2>
+<div class="callout"><strong class="title">From Lab 2-3 — Persistence</strong>
+<ul>
+<li><b>Four mechanisms → one payload:</b> permanent WMI (5861/5859, <code>WmiPrvSE</code>), scheduled task (4698 create / Operational 129 exec), BITS re-fetch, Run key.</li>
+<li>Staging pattern: payload under <code>C:\Users\Public\…</code> (e.g. <code>cdbupd.exe</code>). BITS C2 IP stays <b>uncorroborated</b> until a second source.</li>
+<li><b>Registered vs fired:</b> parent of 4688 — <code>WmiPrvSE</code>/<code>taskhostw</code>/logon vs <code>powershell</code> (manual test).</li>
+<li>Absence of a malicious service is still a finding. Remediate <b>all</b> layers together or a survivor restores the payload.</li>
+</ul></div>
+
 <div class="callout ok"><strong class="title">Quick reference</strong><ul><li>4698 = task created; 7045 = service installed</li><li>Run/RunOnce: HKLM and HKCU</li><li>WMI = Filter + Consumer + Binding</li><li>Memory-only dies on reboot — image RAM first</li><li>Autoruns + Event IDs + timeline = prove it</li></ul></div>
 
 <h2>Mini self-check</h2>

@@ -29,6 +29,16 @@
 
 <div class="callout warn"><strong class="title">Scope reminder</strong><ul><li>This material covers detection, artifacts, and incident response only.</li><li>Attacker actions are phrased as 'adversaries may…' then pivot to evidence.</li><li>Tool/command names appear as IOC strings / exam knowledge — not how-to guides.</li></ul></div>
 
+<div class="callout"><strong class="title">From the labs</strong>
+<ul>
+<li><b>Lab 1:</b> Sandbox dead-drop (T1102.001) — 403 still proves attempt; DeviceSync <code>agent-*.tmp</code> host IOC.</li>
+<li><b>Lab 2:</b> Memory-before-disk; 4688 dump-tool cmdline + 4662/4624 DCSync; WMI 5861 + task 4698/129 + BITS + Run key → one payload.</li>
+<li><b>Lab 3:</b> <code>malfind</code> RWX+MZ leads; rundll32 DLL (#52); loopback <code>127.0.0.1:9090</code>; Observed/Inferred/Unresolved.</li>
+<li><b>Lab 4:</b> Join WAF/IIS on request ID; prove webshell with w3wp→cmd 4688; DNS/archive staging — keep byte counts separate.</li>
+<li>Consolidated PDF: <a href="pdfs/09-lab-takeaways.pdf">09-lab-takeaways.pdf</a> · notes: <code>LAB-TAKEAWAYS.md</code> (source extract not in repo).</li>
+</ul></div>
+
+
 <h2>1. Malware Analysis</h2>
 <h3>Static analysis</h3>
 <ul><li><b>FLOSS</b> — recovers decoded / stack / obfuscated strings adversaries try to hide</li><li><b>strings hunt</b> — URL, IP, domain, registry key, file path, mutex (IOC material)</li><li><b>PE header</b> — tools: <code>file</code>, <code>readpe</code>, <code>pefile</code>, <code>objdump</code>; compile time often fake; inspect sections, imports, entry point</li><li><b>Entropy &gt;7</b> — often packed/encrypted (heuristic only; not proof)</li></ul>

@@ -53,6 +53,15 @@
 <h2>Common exam traps</h2>
 <ul><li>Assuming fixed IIS column order without reading #Fields</li><li>Equating HTTP 200 with compromise success</li><li>Ignoring time zone skew between web logs and Windows event logs</li><li>Hunting only .aspx while shells use .ashx, images with appended payloads, etc.</li><li>Forgetting that reverse proxies change c-ip (use X-Forwarded-For if logged)</li></ul>
 
+<h2>Lab takeaways</h2>
+<div class="callout"><strong class="title">From Lab 4-1 — Web attacks / webshell</strong>
+<ul>
+<li>Join WAF ↔ IIS on <b>request ID</b> (<code>d4rid</code>), not nearest timestamp. Blocked probes can legitimately have <b>zero</b> IIS rows.</li>
+<li>Gateway decode-then-match order can miss encoded probes — missed detection may be a control limit, not "attacker skill".</li>
+<li><b>Prove webshell execution:</b> IIS 200 alone insufficient; need <code>w3wp → cmd/powershell</code> 4688 + matching request marker + app exit success (Hayabusa "Suspicious Process By Web Server Process").</li>
+<li>Watch writable uploads paths for <code>.aspx</code> placement; MFTECmd helps timeline file drop vs first hit.</li>
+</ul></div>
+
 <div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Always parse IIS #Fields — order can change</li><li>Filter: URI, status, IP, method, time, request id</li><li>Web shell chain: request → w3wp.exe → cmd/powershell</li><li>200 ≠ success; request ≠ execution</li><li>Join logs to 4688/Sysmon on the web server</li></ul></div>
 
 <h2>Mini self-check</h2>

@@ -54,6 +54,15 @@
 <h2>Common exam traps</h2>
 <ul><li>Confusing Target (collect) with Module (parse)</li><li>Skipping Prefetch on servers where Prefetch may be disabled — know the OS role</li><li>Collecting only Security.evtx and missing Sysmon / PowerShell / Task Scheduler logs</li><li>Forgetting chain of custody and hashing of collected archives</li><li>Running heavy Module parsing on the victim (prefer collect → analyze offline)</li></ul>
 
+<h2>Lab takeaways</h2>
+<div class="callout"><strong class="title">From Lab 2-1 — Triage collection</strong>
+<ul>
+<li><b>Order of volatility:</b> capture memory <b>before</b> disk triage — RAM is lost on reboot.</li>
+<li>Triage (SANS/KAPE-style targets) is faster than a full image and can keep a live DC in service; still hash and document custody.</li>
+<li>Expect Registry hives + EVTX; note <b>gaps</b> (e.g. <code>Users\Public</code> staging may be omitted by the target set).</li>
+<li><b>Dirty SOFTWARE hive:</b> live copy → replay transaction logs = Yes; load dirty hive = Yes (Registry Explorer).</li>
+</ul></div>
+
 <div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Velociraptor: collect | hunt | live response | artifacts</li><li>KAPE Target = collect (MFT, EVTX, Registry, Prefetch, Amcache)</li><li>KAPE Module = parse (MFTECmd, EvtxECmd, RECmd)</li><li>Order of volatility: memory → logs/registry → full disk</li><li>Triage = decide next steps, not write the full report yet</li></ul></div>
 
 <h2>Mini self-check</h2>

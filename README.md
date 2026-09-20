@@ -20,9 +20,11 @@ Open [`index.html`](index.html) locally, or use GitHub Pages once enabled:
 | [07 Web logs](07-web-logs.html) | Apache / IIS / web shells |
 | [08 Incident response](08-incident-response.html) | NIST lifecycle |
 
+Each topic page includes a short **Lab takeaways** box (Event IDs / tools / prove-X from classroom labs). Full lab packs are not published here.
+
 ## PDF downloads
 
-All PDFs: [`pdfs/`](pdfs/)
+All PDFs: [`pdfs/`](pdfs/) — including [`09-lab-takeaways.pdf`](pdfs/09-lab-takeaways.pdf).
 
 ## Safety
 

@@ -48,6 +48,15 @@
 <h2>Common exam traps</h2>
 <ul><li>Treating every RWX region as malware (some legitimate software uses RWX briefly)</li><li>Using only pslist and missing hidden processes</li><li>Rebooting before memory acquisition when injection is suspected</li><li>Ignoring cmdline in memory when disk Prefetch was cleared</li><li>Forgetting to dump malfind regions for offline PE/YARA analysis</li></ul>
 
+<h2>Lab takeaways</h2>
+<div class="callout"><strong class="title">From Lab 3 — Memory forensics</strong>
+<ul>
+<li><b>Volatility 3:</b> delivery <code>WINWORD</code> → Public drops; <code>rundll32 …libcurl.dll,#52</code> (<b>T1218.011</b>); reflective load via <code>malfind</code> RWX+MZ (<b>T1620</b>).</li>
+<li><code>malfind</code> = <b>leads</b> (carve/parse PE); empty hexdump means pages not in the capture — not "benign".</li>
+<li>Loopback relay: listener on <code>127.0.0.1:9090</code> (missed by network sensors). External CLOSED socket with no owner = uncorroborated IOC.</li>
+<li>Label claims <b>Observed / Inferred / Unresolved</b>; tag ATT&amp;CK only for what the image shows.</li>
+</ul></div>
+
 <div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Clues: RWX + private + MZ</li><li>pslist vs psscan → find hidden/exited/DKOM</li><li>malfind → dump → strings/YARA/VT</li><li>Also: pstree, cmdline, dlllist, netscan, vadinfo</li><li>Memory first when fileless suspected</li></ul></div>
 
 <h2>Mini self-check</h2>

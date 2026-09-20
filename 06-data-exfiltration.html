@@ -53,6 +53,15 @@
 <h2>Common exam traps</h2>
 <ul><li>Calling any ZIP creation 'exfil' without transfer evidence</li><li>Ignoring encrypted archives (still prove stage+pack+egress metadata)</li><li>DNS tunneling conclusions without process attribution</li><li>Forgetting USN/MFT for deleted staging directories</li><li>Missing rclone.conf while hunting only for the EXE name</li></ul>
 
+<h2>Lab takeaways</h2>
+<div class="callout"><strong class="title">From Lab 4-2 — Data exfiltration</strong>
+<ul>
+<li>Separate <b>retained older persistence</b> from new staging by date/time before blaming "patient zero" on the burst.</li>
+<li>Hayabusa: 4688 <b>row</b> count ≠ Proc Exec <b>event</b> count (one event → many rules). Burst vs quiet window as a rate; launch rate ≠ DNS packet rate.</li>
+<li>Staging: encrypted archive; hash members vs staged files; keep compressed size ≠ source bytes. DNS chunk reconstruct offline — do not resolve live.</li>
+<li>Upload <b>intent</b>: <code>curl</code> + PowerShell history as two independent sources. Report staged / compressed / received / delivered as separate numbers.</li>
+</ul></div>
+
 <div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Chain: stage → pack → transfer</li><li>MFTECmd for file timeline / deleted staging</li><li>Hayabusa: exec, PS, service, task, cred-dump Sigma</li><li>rclone: %APPDATA%\\rclone\\rclone.conf + 4688 + Prefetch</li><li>DNS tunnel: bursts, encoded labels, same parent, process proof</li></ul></div>
 
 <h2>Mini self-check</h2>
