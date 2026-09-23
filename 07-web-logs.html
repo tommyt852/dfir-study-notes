@@ -31,7 +31,41 @@
 <p>Web servers are frequent initial access and persistence points. Logs show who requested what, when, and with which response code — but they do <b>not</b> by themselves prove server-side command execution. Always be ready to join logs to host process evidence.</p>
 
 <h2>Apache logs (common / combined)</h2>
-<p>Typical combined-style fields include: client IP, identity, user, timestamp, request line (method, URI, protocol), status code, size, referrer, User-Agent. Exact format is controlled by the <code>LogFormat</code> directive — confirm the format string in scope.</p>
+<p>Apache access logging is set with <code>LogFormat</code> + <code>CustomLog</code>. Two nicknamed presets show up constantly on exams and in the wild. Always confirm the nickname (or the literal format string) in <code>httpd.conf</code> / the vhost before you parse.</p>
+
+<h3>Common Log Format (CLF) — nickname <code>common</code></h3>
+<pre><code>LogFormat "%h %l %u %t \"%r\" %&gt;s %b" common
+CustomLog logs/access_log common</code></pre>
+
+<h3>Combined Log Format — nickname <code>combined</code></h3>
+<pre><code>LogFormat "%h %l %u %t \"%r\" %&gt;s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+CustomLog logs/access_log combined</code></pre>
+<p><b>Combined = Common + Referer + User-Agent.</b> Most modern sites use <code>combined</code> (or a custom string built from the same tokens).</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Token</th><th>Meaning</th><th>DFIR use</th></tr></thead>
+<tbody>
+<tr><td><code>%h</code></td><td>Remote host (client IP / hostname)</td><td>Source IP; watch reverse-proxy / <code>X-Forwarded-For</code> if present</td></tr>
+<tr><td><code>%l</code></td><td>RFC 1413 identity</td><td>Almost always <code>-</code> (unused)</td></tr>
+<tr><td><code>%u</code></td><td>Authenticated user (HTTP auth)</td><td>Non-<code>-</code> = basic/digest auth identity</td></tr>
+<tr><td><code>%t</code></td><td>Time of request (<code>[dd/Mon/yyyy:HH:mm:ss ±zzzz]</code>)</td><td>Timeline; note offset vs host logs</td></tr>
+<tr><td><code>%r</code></td><td>First request line: method + URI + protocol</td><td>Split into method / path / query for hunting</td></tr>
+<tr><td><code>%&gt;s</code></td><td>Final status code (after redirects/handlers)</td><td>Prefer <code>%&gt;s</code> over <code>%s</code> for what the client got</td></tr>
+<tr><td><code>%b</code></td><td>Response size in bytes (CLF: <code>-</code> if zero)</td><td>Odd sizes on shell paths; exfil volume clues</td></tr>
+<tr><td><code>%{Referer}i</code></td><td>Referer request header (combined only)</td><td>Navigation / CSRF / unexpected origin</td></tr>
+<tr><td><code>%{User-Agent}i</code></td><td>User-Agent header (combined only)</td><td>Scanner vs browser vs automation</td></tr>
+</tbody>
+</table></div>
+
+<h3>Sample combined line</h3>
+<pre><code>203.0.113.50 - - [24/Sep/2026:01:15:42 +0800] "POST /uploads/x.php HTTP/1.1" 200 412 "-" "curl/8.5.0"</code></pre>
+<ul>
+<li><b>%h</b> <code>203.0.113.50</code> · <b>%l/%u</b> both <code>-</code> · <b>%t</b> <code>24/Sep/2026:01:15:42 +0800</code></li>
+<li><b>%r</b> <code>POST /uploads/x.php HTTP/1.1</code> · <b>%&gt;s</b> <code>200</code> · <b>%b</b> <code>412</code></li>
+<li><b>Referer</b> <code>-</code> · <b>User-Agent</b> <code>curl/8.5.0</code> (automation-like)</li>
+</ul>
+<p>Default paths are often <code>logs/access_log</code> (or <code>access.log</code>) and <code>logs/error_log</code>. <b>error_log</b> is not CLF — it holds Apache/module errors and can corroborate failed exploits or misconfig.</p>
+
 <ul><li>Hunt: rare URIs, .php/.jsp/.aspx under upload dirs, admin panels from odd IPs</li><li>Status clusters: repeated 404 (scanning), sudden 500 (exploit fail), 200 on unusual paths</li><li>Methods: unexpected PUT/MOVE/PROPFIND on IIS/WebDAV-enabled servers</li></ul>
 
 <h2>IIS W3C logs — critical exam point</h2>
@@ -62,7 +96,7 @@
 <li>Watch writable uploads paths for <code>.aspx</code> placement; MFTECmd helps timeline file drop vs first hit.</li>
 </ul></div>
 
-<div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Always parse IIS #Fields — order can change</li><li>Filter: URI, status, IP, method, time, request id</li><li>Web shell chain: request → w3wp.exe → cmd/powershell</li><li>200 ≠ success; request ≠ execution</li><li>Join logs to 4688/Sysmon on the web server</li></ul></div>
+<div class="callout ok"><strong class="title">Quick reference</strong><ul><li>Apache: know <code>common</code> vs <code>combined</code> tokens; confirm <code>LogFormat</code></li><li>Always parse IIS #Fields — order can change</li><li>Filter: URI, status, IP, method, time, request id</li><li>Web shell chain: request → w3wp.exe → cmd/powershell</li><li>200 ≠ success; request ≠ execution</li><li>Join logs to 4688/Sysmon on the web server</li></ul></div>
 
 <h2>Mini self-check</h2>
 <p>Try answering without looking back. Expand each item for the answer.</p>

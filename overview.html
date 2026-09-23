@@ -67,7 +67,7 @@
 <p><a href="06-data-exfiltration.html">Deep dive →</a></p>
 
 <h2>7. Web Logs</h2>
-<ul><li>Apache common/combined fields; IIS W3C — <b>#Fields order can change</b>; always parse header</li><li>Filter by URI, status, IP, method, request id, timestamp</li><li>Web shell chain: HTTP request → IIS <code>w3wp.exe</code> → cmd/powershell child</li><li>Trap: HTTP 200 ≠ successful attack; request ≠ execution — correlate with process creation</li></ul>
+<ul><li>Apache <code>common</code>/<code>combined</code> <code>LogFormat</code> tokens (<code>%h %l %u %t "%r" %&gt;s %b</code> + Referer/UA); IIS W3C — <b>#Fields order can change</b>; always parse header</li><li>Filter by URI, status, IP, method, request id, timestamp</li><li>Web shell chain: HTTP request → IIS <code>w3wp.exe</code> → cmd/powershell child</li><li>Trap: HTTP 200 ≠ successful attack; request ≠ execution — correlate with process creation</li></ul>
 <p><a href="07-web-logs.html">Deep dive →</a></p>
 
 <h2>8. Incident Response (NIST)</h2>
