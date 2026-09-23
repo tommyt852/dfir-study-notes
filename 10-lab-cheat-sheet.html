@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 — Lab Cheat Sheet | DFIR Study Notes</title>
+<meta name="description" content="Educational defensive DFIR study notes — lab exam cheat sheet with screenshots and Volatility / NTFS cards.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="10-lab-cheat-sheet.html" aria-current="page">Cheat</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="wide-main">
+
+<header class="page-header">
+  <span class="badge">Section 10</span>
+  <h1>Lab Cheat Sheet</h1>
+  <p class="subtitle">Exam-ready cards from classroom labs — static triage, artifacts, cred/IR, persistence, Volatility, NTFS</p>
+</header>
+<p><a href="pdfs/10-lab-cheat-sheet.pdf">Download PDF</a> · <a href="overview.html">Overview</a> · <a href="index.html">Home</a></p>
+
+<div class="callout warn"><strong class="title">Scope reminder</strong><ul>
+<li>Detection and forensics focus only — tool/command strings are <b>IOC / hunt patterns</b>, not attack recipes.</li>
+<li>Screenshots are study aids from lab notes; full lab packs / zips are not published here.</li>
+</ul></div>
+
+<nav class="cheat-toc" aria-label="Cheat sheet sections">
+  <strong>Jump to</strong>
+  <ol>
+    <li><a href="#sec-a">A. Static / sandbox commands &amp; PE</a></li>
+    <li><a href="#sec-b">B. Triage &amp; artifacts</a></li>
+    <li><a href="#sec-c">C. Cred dump / DCSync / IR response</a></li>
+    <li><a href="#sec-d">D. Persistence</a></li>
+    <li><a href="#sec-e">E. Memory forensics / Volatility</a></li>
+    <li><a href="#sec-f">F. NTFS / MFTECmd</a></li>
+  </ol>
+</nav>
+
+<!-- ========== A ========== -->
+<h2 id="sec-a"><span class="section-label">A</span> Static / sandbox commands &amp; PE</h2>
+
+<h3>01 — What each command does</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/01-what-each-command-does.png" alt="Lab card: mkdir, sha256sum with tee, file, ls -lh for sample triage" loading="lazy" width="2227" height="848">
+  <figcaption>WHAT EACH COMMAND DOES — <code>mkdir</code>, <code>sha256sum|tee</code>, <code>file</code>, <code>ls -lh</code></figcaption>
+</figure>
+
+<h3>02 — The report’s static panel</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/02-report-static-panel.png" alt="Lab card: entropy packing, imphash, ssdeep, imports in static panel" loading="lazy" width="1618" height="902">
+  <figcaption>THE REPORT'S STATIC PANEL — entropy/packing, imphash, ssdeep, imports</figcaption>
+</figure>
+
+<h3>03 — PE/MZ + process-tree lineage</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/03-pe-mz-process-tree.png" alt="Lab card: PE MZ header and WINWORD to cmd or powershell process tree" loading="lazy" width="1604" height="1027">
+  <figcaption>PE/MZ + PROCESS-TREE LINEAGE (<code>WINWORD→cmd/powershell</code>)</figcaption>
+</figure>
+
+<h3>04 — MITRE ATT&amp;CK Day-1 subset</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/04-mitre-attack-day1.png" alt="Lab card: MITRE ATT and CK Day-1 technique subset from T1566.001 to T1053.005" loading="lazy" width="1550" height="652">
+  <figcaption>MITRE ATT&amp;CK Day-1 subset (T1566.001 … T1053.005)</figcaption>
+</figure>
+
+<!-- ========== B ========== -->
+<h2 id="sec-b"><span class="section-label">B</span> Triage &amp; artifacts</h2>
+
+<h3>05 — Triage = selective copy</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/05-triage-collection-manifests.png" alt="Lab card: triage selective copy with collection_context uploads and log.json" loading="lazy" width="1589" height="397">
+  <figcaption>Triage = selective copy; <code>collection_context</code> / uploads / <code>log.json</code></figcaption>
+</figure>
+
+<h3>06 — Artifact category → path</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/06-artifact-locations.png" alt="Lab card: artifact category to path map for Registry EVTX MFT Prefetch WMI Tasks BITS Amcache" loading="lazy" width="958" height="977">
+  <figcaption>Artifact category → path (Registry, EVTX, MFT, Prefetch, WMI, Tasks, BITS, Amcache)</figcaption>
+</figure>
+
+<h3>07 — Dirty SOFTWARE hive</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/07-dirty-software-hive.png" alt="Lab card: dirty SOFTWARE hive quiz — live copy plus transaction logs" loading="lazy" width="1522" height="337">
+  <figcaption>Dirty SOFTWARE hive quiz — live copy + transaction logs</figcaption>
+</figure>
+
+<!-- ========== C ========== -->
+<h2 id="sec-c"><span class="section-label">C</span> Cred dump / DCSync / IR response</h2>
+
+<div class="callout"><strong class="title">Detection framing</strong>
+<p>Credential-access tooling below is listed only as <b>what Security/Sysmon show</b> and <b>what to hunt</b>. Treat suspicious dump-tool command lines as <b>IOC strings</b> (e.g. process name + path + target process), not procedures to run.</p>
+</div>
+
+<h3>08 — DCSync vs legitimate replication</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/08-dcsync-vs-replication.png" alt="Lab card: DCSync versus legitimate DC to DC replication and krbtgt risk" loading="lazy" width="1535" height="343">
+  <figcaption>DCSync vs legitimate DC↔DC replication; krbtgt risk</figcaption>
+</figure>
+
+<h3>09 — No 4104 when dump is a native EXE</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/09-no-4104-native-dump.png" alt="Lab card: PowerShell 4104 absent for native EXE dump; hunt 4688 command line instead" loading="lazy" width="1555" height="384">
+  <figcaption>No 4104 when dump is native EXE; <b>4688 cmdline</b> is the primary detection surface (hunt patterns such as dump-tool name + LSASS target — not a how-to)</figcaption>
+</figure>
+
+<h3>10 — DCSync impact &amp; remediation</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/10-dcsync-impact-remediation.png" alt="Lab card: DCSync impact requires domain-wide password reset; rotate krbtgt twice" loading="lazy" width="1552" height="332">
+  <figcaption>DCSync impact: domain-wide reset; krbtgt twice</figcaption>
+</figure>
+
+<h3>11 — Domain compromise IR</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/11-domain-compromise-response.png" alt="Lab card: domain compromise IR — isolate AD, hunt return path, krbtgt twice" loading="lazy" width="1594" height="386">
+  <figcaption>Domain compromise IR: isolate AD, hunt return path, krbtgt×2</figcaption>
+</figure>
+
+<!-- ========== D ========== -->
+<h2 id="sec-d"><span class="section-label">D</span> Persistence</h2>
+
+<h3>12 — Layered persistence</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/12-layered-persistence.png" alt="Lab card: layered persistence categories — complete the list then remove" loading="lazy" width="2136" height="668">
+  <figcaption>Layered persistence categories; complete list then remove</figcaption>
+</figure>
+
+<h3>13 — Mutually restoring persistence</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/13-mutually-restoring-persistence.png" alt="Lab card: mutually restoring persistence requires coordinated removal window" loading="lazy" width="1977" height="471">
+  <figcaption>Mutually restoring persistence; coordinated removal window</figcaption>
+</figure>
+
+<!-- ========== E ========== -->
+<h2 id="sec-e"><span class="section-label">E</span> Memory forensics / Volatility</h2>
+
+<h3>14 — Boot time + ProfileList vs sessions</h3>
+<p><code>windows.info</code> does <b>not</b> report when the machine last booted. The System process (<b>PID 4</b>) is created at boot and runs until shutdown, so its <b>creation time</b> is the boot time.</p>
+<pre><code>vol -f &lt;memory.raw&gt; windows.info
+vol -f &lt;memory.raw&gt; windows.pslist</code></pre>
+<p>Use <code>pslist</code> (or <code>pstree</code>) to read PID 4 / System create time.</p>
+<h4>ProfileList vs windows.sessions</h4>
+<p>They do <b>not</b> answer the same question:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Plugin / key</th><th>Answers</th></tr></thead>
+<tbody>
+<tr><td><b>ProfileList</b> (<code>HKLM\...\ProfileList</code>)</td><td>Every account that has <b>ever</b> logged in — historical record</td></tr>
+<tr><td><b>windows.sessions</b></td><td>Who was logged in <b>at the moment of capture</b></td></tr>
+</tbody>
+</table></div>
+<pre><code>vol -f &lt;memory.raw&gt; windows.registry.hivelist
+vol -f &lt;memory.raw&gt; windows.registry.printkey \
+  --key "Microsoft\Windows NT\CurrentVersion\ProfileList"
+vol -f &lt;memory.raw&gt; windows.sessions
+vol -f &lt;memory.raw&gt; windows.pstree</code></pre>
+
+<h3>15 — pslist vs psscan vs pstree</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Plugin</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><b>windows.pslist</b></td><td>Walks the <b>active process list</b> the way the OS does. Fast and accurate for anything running normally.</td></tr>
+<tr><td><b>windows.psscan</b></td><td>Scans <b>raw memory</b> for process structures instead of trusting the list. Finds processes that have <b>exited</b>, and processes deliberately <b>unlinked</b> from the list to hide them.</td></tr>
+<tr><td><b>windows.pstree</b></td><td>Shows the same processes as a <b>parent/child tree</b>. Most problems show up here, because malware often has a parent process that makes no sense.</td></tr>
+</tbody>
+</table></div>
+<p><b>Exam tip:</b> <code>pslist</code> ≠ <code>psscan</code> → look for hidden or exited processes (including DKOM-style unlink). Use <code>pstree</code> to spot impossible lineages.</p>
+
+<h3>16 — cmdline, dlllist, getsids, handles</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Plugin</th><th>What it shows</th><th>Why it matters</th></tr></thead>
+<tbody>
+<tr><td><b>windows.cmdline</b></td><td>Full command line each process was launched with</td><td>Encoded or obfuscated arguments are a strong indicator</td></tr>
+<tr><td><b>windows.dlllist</b></td><td>Modules (DLLs) each process has loaded</td><td>A networking DLL inside a process that has no reason to talk to the network is a well-known indicator</td></tr>
+<tr><td><b>windows.getsids</b></td><td>Security identifiers (SIDs) a process holds — whose authority it runs under</td><td>A normally unprivileged program running as <b>SYSTEM</b> means privilege escalation happened. SID <code>S-1-5-18</code> is the built-in SYSTEM account (highest local privilege)</td></tr>
+<tr><td><b>windows.handles</b></td><td>Open objects a process holds: files, registry keys, named pipes</td><td>Pipes are one way separate malware components talk to each other on the same host</td></tr>
+</tbody>
+</table></div>
+
+<h3>17 — netscan + malfind</h3>
+<h4>windows.netscan</h4>
+<p>Recovers TCP and UDP endpoints, including sockets already <b>closed</b> by capture time. Shows local/remote address, port, connection state, and owning <b>PID</b>.</p>
+<h4>windows.malware.malfind</h4>
+<p>Flags memory that is <b>executable and writable</b> but <b>backed by no file on disk</b>. That combination is the signature of injected or reflectively-loaded code. The plugin prints a hexdump of the first bytes so you can see whether they begin <code>4D 5A</code> (MZ).</p>
+<h4>False positives</h4>
+<p>Some legitimate software allocates <b>RWX</b> memory genuinely — anything with a JIT compiler (browsers, .NET runtime).</p>
+<p><b>Interesting hit</b> = RWX <b>and</b> MZ header <b>and</b> a process that has no reason to be doing it.</p>
+<p>Treat <b>malfind as leads to check, not conclusions to report</b>.</p>
+
+<h3>18 — windows.modules vs windows.driverscan</h3>
+<p>These plugins do <b>not</b> report the same kind of thing.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Plugin</th><th>What it walks</th><th>How things are named</th></tr></thead>
+<tbody>
+<tr><td><b>windows.modules</b></td><td>Kernel’s list of <b>loaded module images</b></td><td>As <b>files</b> — <code>ntoskrnl.exe</code>, <code>hal.dll</code>, Path under <code>\SystemRoot\system32\</code></td></tr>
+<tr><td><b>windows.driverscan</b></td><td>Memory for <b>driver objects</b></td><td>In the <b>device namespace</b> — <code>\Driver\HTTP</code>, <code>\Driver\00000311</code></td></tr>
+</tbody>
+</table></div>
+<p>One image can own several driver objects, and scanning finds the same object more than once.</p>
+<h4>What does / does not prove</h4>
+<ul>
+<li>Comparing the <b>two counts</b> proves nothing — they count different kinds of thing.</li>
+<li>Comparing the <b>two name lists</b> proves nothing — <code>ntoskrnl.exe</code> and <code>\Driver\HTTP</code> are not in the same namespace; no name will match.</li>
+</ul>
+<h4>The comparison that means something</h4>
+<p>Map by <b>address</b>: take each driver object’s <b>Start</b> from <code>driverscan</code> and find the module in <code>modules</code> whose <b>Base … Base+Size</b> range contains it.</p>
+<p>A driver object whose <b>Start falls inside no loaded module</b> is worth investigating — something is executing in kernel space that the module list does not account for.</p>
+<p><b>Lab scope note:</b> full address mapping may be beyond a day’s exercise; still run both, record counts, and state clearly what the check does and does not support.</p>
+
+<h3>19 — What modules/driverscan showed</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/19-modules-driverscan-what-it-showed.png" alt="Lab card: what modules and driverscan showed versus did not — listing is not clean" loading="lazy" width="1575" height="405">
+  <figcaption>What modules/driverscan showed vs did not (listing ≠ clean)</figcaption>
+</figure>
+
+<h3>20 — vadinfo: hollowing vs reflective</h3>
+<p><b>Two columns do the work, not one.</b></p>
+<p><code>windows.vadinfo</code> lists a process’s memory regions and, for each one, whether it is <b>backed by a file on disk</b>. That separates <b>file-backed code</b> from <b>private code</b>.</p>
+<p>It does <b>not</b> separate <b>process hollowing</b> from <b>reflective loading</b>, because <b>both are private</b>. For that you also check whether the <b>main image region is still intact</b>.</p>
+<p><b>Read both before you name a technique.</b></p>
+
+<h3>21 — Injection vs hollowing vs reflective</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/21-injection-hollowing-reflective.png" alt="Lab card: DLL injection versus process hollowing versus reflective loading — not the same as side-load" loading="lazy" width="1565" height="1128">
+  <figcaption>DLL injection vs hollowing vs reflective; ≠ side-load</figcaption>
+</figure>
+
+<h3>22 — malfind dump vs dumpfiles</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/22-malfind-dump-vs-dumpfiles.png" alt="Lab card: private region use malfind dump; on-disk use dumpfiles" loading="lazy" width="1585" height="165">
+  <figcaption>Private region → <code>malfind --dump</code>; on-disk → <code>dumpfiles</code> (forensic extraction plugins)</figcaption>
+</figure>
+
+<!-- ========== F ========== -->
+<h2 id="sec-f"><span class="section-label">F</span> NTFS / MFTECmd</h2>
+
+<h3>23 — NTFS 0x10 vs 0x30 (timestomp lead)</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/23-ntfs-timestomp-0x10-0x30.png" alt="Lab card: NTFS SI 0x10 versus FN 0x30 timestamps; timestomp pattern is a lead" loading="lazy" width="1914" height="452">
+  <figcaption>NTFS 0x10 vs 0x30; timestomp pattern is a lead</figcaption>
+</figure>
+
+<h3>24 — MFTECmd</h3>
+<p>Eric Zimmerman MFT parser — used for <code>$MFT</code> / <code>$J</code> (USN) timelines, create/modify/delete, and checking <b>0x10 vs 0x30</b> timestamps.</p>
+<p>Typical lab path:</p>
+<pre><code>C:\Training\Tools\EricZimmerman\MFTECmd.exe</code></pre>
+<p>Pairs with: Timeline Explorer, AmcacheParser, Hayabusa.</p>
+
+<div class="callout ok"><strong class="title">Quick exam anchors</strong>
+<ul>
+<li>Static order: hash → <code>file</code> → entropy/imphash → imports → sandbox lineage</li>
+<li>Dirty hive → collect hive <b>and</b> transaction logs</li>
+<li>Native dump EXE → no PS 4104; hunt <b>4688 / Sysmon 1</b> cmdline IOCs</li>
+<li>DCSync remediation → domain-wide reset + <b>krbtgt ×2</b></li>
+<li><code>pslist</code> ≠ <code>psscan</code>; malfind = leads (RWX+MZ+odd process)</li>
+<li>modules vs driverscan → map by <b>address</b>, not name/count</li>
+<li>vadinfo: private vs file-backed; both hollow + reflective are private</li>
+<li>Timestomp lead: SI (<code>0x10</code>) vs FN (<code>0x30</code>) mismatch</li>
+</ul></div>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>

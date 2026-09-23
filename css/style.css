@@ -428,3 +428,48 @@ code, .mono {
   }
   .nav-links.open { display: flex; }
 }
+
+/* —— Cheat-sheet figures —— */
+figure.cheat-fig {
+  margin: 1rem 0 1.5rem;
+  padding: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+figure.cheat-fig img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 4px;
+}
+figure.cheat-fig figcaption {
+  margin-top: 0.65rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-align: left;
+  line-height: 1.45;
+}
+.cheat-toc {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.15rem;
+  margin: 1rem 0 1.5rem;
+}
+.cheat-toc ol { margin-bottom: 0; }
+.section-label {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent2);
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}

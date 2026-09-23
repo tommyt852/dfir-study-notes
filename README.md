@@ -19,12 +19,13 @@ Open [`index.html`](index.html) locally, or use GitHub Pages once enabled:
 | [06 Data exfiltration](06-data-exfiltration.html) | Staging, rclone, DNS tunnel |
 | [07 Web logs](07-web-logs.html) | Apache / IIS / web shells |
 | [08 Incident response](08-incident-response.html) | NIST lifecycle |
+| [10 Lab cheat sheet](10-lab-cheat-sheet.html) | Exam cards + lab screenshots |
 
 Each topic page includes a short **Lab takeaways** box (Event IDs / tools / prove-X from classroom labs). Full lab packs are not published here.
 
 ## PDF downloads
 
-All PDFs: [`pdfs/`](pdfs/) — including [`09-lab-takeaways.pdf`](pdfs/09-lab-takeaways.pdf).
+All PDFs: [`pdfs/`](pdfs/) — including [`09-lab-takeaways.pdf`](pdfs/09-lab-takeaways.pdf) and [`10-lab-cheat-sheet.pdf`](pdfs/10-lab-cheat-sheet.pdf).
 
 ## Safety
 

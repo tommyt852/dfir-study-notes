@@ -1,19 +1,45 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>PDFs | DFIR Study Notes</title>
-<link rel="stylesheet" href="../css/style.css"></head><body>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDFs | DFIR Study Notes</title>
+<meta name="description" content="PDF downloads for DFIR Study Notes.">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="../index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="../index.html">Home</a></li><li><a href="../overview.html">Overview</a></li><li><a href="../01-malware-analysis.html">01</a></li><li><a href="../02-triage-collection.html">02</a></li><li><a href="../03-credential-dumping.html">03</a></li><li><a href="../04-persistence.html">04</a></li><li><a href="../05-memory-forensics.html">05</a></li><li><a href="../06-data-exfiltration.html">06</a></li><li><a href="../07-web-logs.html">07</a></li><li><a href="../08-incident-response.html">08</a></li><li><a href="../10-lab-cheat-sheet.html">Cheat</a></li><li><a href="./" aria-current="page">PDFs</a></li></ul>
+  </div>
+</nav>
 <main>
-<h1>PDF downloads</h1>
-<ul>
-<li><a href="00-overview.pdf">00-overview.pdf</a></li>
-<li><a href="01-malware-analysis.pdf">01-malware-analysis.pdf</a></li>
-<li><a href="02-triage-collection.pdf">02-triage-collection.pdf</a></li>
-<li><a href="03-credential-dumping.pdf">03-credential-dumping.pdf</a></li>
-<li><a href="04-persistence.pdf">04-persistence.pdf</a></li>
-<li><a href="05-memory-forensics.pdf">05-memory-forensics.pdf</a></li>
-<li><a href="06-data-exfiltration.pdf">06-data-exfiltration.pdf</a></li>
-<li><a href="07-web-logs.pdf">07-web-logs.pdf</a></li>
-<li><a href="08-incident-response.pdf">08-incident-response.pdf</a></li>
-<li><a href="09-lab-takeaways.pdf">09-lab-takeaways.pdf</a></li>
+<header class="page-header">
+  <span class="badge">Downloads</span>
+  <h1>PDF downloads</h1>
+  <p class="subtitle">Offline study PDFs (relative links; works without a server).</p>
+</header>
+<ul class="pdf-list">
+<li><a href="00-overview.pdf">00-overview.pdf</a> <span class="section-num">— Full outline + prove-X map</span></li>
+<li><a href="01-malware-analysis.pdf">01-malware-analysis.pdf</a> <span class="section-num">— Malware Analysis</span></li>
+<li><a href="02-triage-collection.pdf">02-triage-collection.pdf</a> <span class="section-num">— Triage &amp; Collection</span></li>
+<li><a href="03-credential-dumping.pdf">03-credential-dumping.pdf</a> <span class="section-num">— Credential Dumping (detection)</span></li>
+<li><a href="04-persistence.pdf">04-persistence.pdf</a> <span class="section-num">— Persistence</span></li>
+<li><a href="05-memory-forensics.pdf">05-memory-forensics.pdf</a> <span class="section-num">— Memory Forensics</span></li>
+<li><a href="06-data-exfiltration.pdf">06-data-exfiltration.pdf</a> <span class="section-num">— Data Exfiltration</span></li>
+<li><a href="07-web-logs.pdf">07-web-logs.pdf</a> <span class="section-num">— Web Logs</span></li>
+<li><a href="08-incident-response.pdf">08-incident-response.pdf</a> <span class="section-num">— Incident Response</span></li>
+<li><a href="09-lab-takeaways.pdf">09-lab-takeaways.pdf</a> <span class="section-num">— Lab takeaways summary</span></li>
+<li><a href="10-lab-cheat-sheet.pdf">10-lab-cheat-sheet.pdf</a> <span class="section-num">— Lab cheat sheet (screenshots + cards)</span></li>
 </ul>
 <p><a href="../index.html">← Home</a></p>
-</main></body></html>
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>
