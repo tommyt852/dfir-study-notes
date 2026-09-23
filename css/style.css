@@ -473,3 +473,50 @@ figure.cheat-fig figcaption {
   margin-right: 0.4rem;
   vertical-align: middle;
 }
+
+/* —— Term boxes / glossary / lang switch (cheat sheet) —— */
+.term-box {
+  background: var(--accent-light);
+  border-left: 4px solid var(--accent2);
+  padding: 0.75rem 1rem;
+  margin: -0.5rem 0 1.5rem;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.95rem;
+}
+.term-box p { margin: 0 0 0.45rem; }
+.term-box p:last-child { margin-bottom: 0; }
+.term-box strong { color: var(--accent); }
+.lang-switch {
+  font-size: 0.95rem;
+  margin: 0 0 0.75rem;
+  padding: 0.45rem 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: inline-block;
+}
+.glossary {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.85rem 1.15rem 0.5rem;
+  margin: 0 0 1.5rem;
+}
+.glossary dl { margin: 0; }
+.glossary dt {
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 0.55rem;
+  font-size: 0.92rem;
+}
+.glossary dd {
+  margin: 0.15rem 0 0.35rem 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--border);
+}
+@media print {
+  .term-box, .glossary, .lang-switch { break-inside: avoid; }
+  .cheat-fig img { max-height: 4.5in; }
+}

@@ -4,8 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>10 — Lab Cheat Sheet | DFIR Study Notes</title>
-<meta name="description" content="Educational defensive DFIR study notes — lab exam cheat sheet with screenshots and Volatility / NTFS cards.">
+<meta name="description" content="Educational defensive DFIR study notes — lab exam cheat sheet with screenshots, term explanations, and Volatility / NTFS cards.">
 <link rel="stylesheet" href="css/style.css">
+<link rel="alternate" hreflang="en" href="10-lab-cheat-sheet.html">
+<link rel="alternate" hreflang="zh-Hant" href="10-lab-cheat-sheet-zh.html">
 </head>
 <body>
 <nav class="site-nav" aria-label="Main">
@@ -13,7 +15,7 @@
     <a class="brand" href="index.html">DFIR Study Notes</a>
     <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
       onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
-    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="10-lab-cheat-sheet.html" aria-current="page">Cheat</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="10-lab-cheat-sheet.html" aria-current="page">Cheat</a></li><li><a href="10-lab-cheat-sheet-zh.html">中文</a></li><li><a href="pdfs/">PDFs</a></li></ul>
   </div>
 </nav>
 <main class="wide-main">
@@ -23,7 +25,8 @@
   <h1>Lab Cheat Sheet</h1>
   <p class="subtitle">Exam-ready cards from classroom labs — static triage, artifacts, cred/IR, persistence, Volatility, NTFS</p>
 </header>
-<p><a href="pdfs/10-lab-cheat-sheet.pdf">Download PDF</a> · <a href="overview.html">Overview</a> · <a href="index.html">Home</a></p>
+<p class="lang-switch"><a href="10-lab-cheat-sheet.html" hreflang="en" lang="en"><strong>English</strong></a> · <a href="10-lab-cheat-sheet-zh.html" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a></p>
+<p><a href="pdfs/10-lab-cheat-sheet.pdf">Download PDF</a> · <a href="pdfs/10-lab-cheat-sheet-zh.pdf">中文 PDF</a> · <a href="overview.html">Overview</a> · <a href="index.html">Home</a></p>
 
 <div class="callout warn"><strong class="title">Scope reminder</strong><ul>
 <li>Detection and forensics focus only — tool/command strings are <b>IOC / hunt patterns</b>, not attack recipes.</li>
@@ -33,6 +36,7 @@
 <nav class="cheat-toc" aria-label="Cheat sheet sections">
   <strong>Jump to</strong>
   <ol>
+    <li><a href="#glossary">Glossary</a></li>
     <li><a href="#sec-a">A. Static / sandbox commands &amp; PE</a></li>
     <li><a href="#sec-b">B. Triage &amp; artifacts</a></li>
     <li><a href="#sec-c">C. Cred dump / DCSync / IR response</a></li>
@@ -42,103 +46,177 @@
   </ol>
 </nav>
 
-<!-- ========== A ========== -->
-<h2 id="sec-a"><span class="section-label">A</span> Static / sandbox commands &amp; PE</h2>
+<h2 id="glossary">Glossary (compact)</h2>
+<div class="glossary">
+<dl>
+  <dt>Entropy / packing</dt><dd>High byte randomness (often &gt;7.0) hints a file may be compressed/encrypted/packed — a lead, not proof of malware.</dd>
+  <dt>imphash</dt><dd>Hash of the PE import table order/names; similar imphash → same toolchain/family candidate for pivoting.</dd>
+  <dt>ssdeep</dt><dd>Fuzzy hash; near-matches help cluster variants that changed a few bytes.</dd>
+  <dt>Imports</dt><dd>APIs the PE claims to call (network, crypto, process). Odd imports for the claimed app type are hunt leads.</dd>
+  <dt>PE / MZ</dt><dd>Windows executable format; bytes <code>4D 5A</code> (“MZ”) mark the DOS stub of a PE image in file or memory.</dd>
+  <dt>Process-tree lineage</dt><dd>Parent→child chain (e.g. <code>WINWORD→cmd</code>). Impossible parents are strong exam IOCs.</dd>
+  <dt>Triage</dt><dd>Selective copy of high-value artifacts — not a full disk image.</dd>
+  <dt>collection_context / log.json</dt><dd>Manifests that record what a collector grabbed, when, and from which host/path.</dd>
+  <dt>Dirty hive + .LOG1/.LOG2</dt><dd>Registry hive copied while OS was live; transaction logs must be collected with the hive to replay consistency.</dd>
+  <dt>DCSync</dt><dd>Abuse of directory replication APIs to pull credential material; contrast with expected DC↔DC replication.</dd>
+  <dt>krbtgt</dt><dd>Domain KRBTGT account; after suspected ticket abuse, rotate <b>twice</b> so old and intermediate keys both die.</dd>
+  <dt>Event 4104</dt><dd>PowerShell script-block logging; absent when the dump tool is a native EXE (no PS engine).</dd>
+  <dt>4688 / Sysmon 1</dt><dd>Process-create events that carry command-line — primary hunt surface for native dump-tool IOC strings.</dd>
+  <dt>Layered persistence</dt><dd>Multiple independent footholds; remove one and others remain.</dd>
+  <dt>Mutually restoring</dt><dd>Mechanisms that reinstall each other; need a coordinated removal window.</dd>
+  <dt>PID 4 boot time</dt><dd>System process create time ≈ last boot; <code>windows.info</code> alone does not give boot time.</dd>
+  <dt>ProfileList vs sessions</dt><dd>Historical logons vs who was logged in at capture time.</dd>
+  <dt>pslist / psscan / pstree</dt><dd>Active list vs pool scan (hidden/exited, DKOM unlink) vs parent/child tree.</dd>
+  <dt>DKOM unlink</dt><dd>Kernel-object manipulation that unlinks a process from the active list so <code>pslist</code> misses it.</dd>
+  <dt>getsids / S-1-5-18</dt><dd>Process token SIDs; <code>S-1-5-18</code> = local SYSTEM.</dd>
+  <dt>malfind</dt><dd>Finds private RWX regions; RWX+MZ in an odd process = lead (JIT can FP).</dd>
+  <dt>modules vs driverscan</dt><dd>Loaded images vs driver objects — compare by <b>address</b>, not name/count.</dd>
+  <dt>vadinfo private vs file-backed</dt><dd>Private = no file mapping; both hollowing and reflective load look private.</dd>
+  <dt>Injection / hollowing / reflective / side-load</dt><dd>Different memory/disk patterns — do not conflate with DLL search-order side-load.</dd>
+  <dt>malfind --dump vs dumpfiles</dt><dd>Carve private injected regions vs extract file-backed images from memory.</dd>
+  <dt>NTFS 0x10 vs 0x30</dt><dd>STANDARD_INFORMATION vs FILE_NAME timestamps; SI/FN mismatch is a timestomp <b>lead</b>.</dd>
+  <dt>MFTECmd</dt><dd>Eric Zimmerman parser for <code>$MFT</code> / USN timelines and 0x10 vs 0x30 checks.</dd>
+</dl>
+</div>
 
+<h2 id="sec-a"><span class="section-label">A</span> Static / sandbox commands &amp; PE</h2>
 <h3>01 — What each command does</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/01-what-each-command-does.png" alt="Lab card: mkdir, sha256sum with tee, file, ls -lh for sample triage" loading="lazy" width="2227" height="848">
+  <img src="images/cheat-sheet/01-what-each-command-does.png" alt="Lab card: mkdir, sha256sum with tee, file, ls -lh for sample triage" loading="lazy">
   <figcaption>WHAT EACH COMMAND DOES — <code>mkdir</code>, <code>sha256sum|tee</code>, <code>file</code>, <code>ls -lh</code></figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — Basic static triage: make a work folder, record SHA-256 (and keep a copy via <code>tee</code>), identify file type, note size.</p>
+  <p><strong>Why it matters on exam</strong> — Exams expect a safe order: <b>hash first</b> so every later note ties to one sample identity.</p>
+  <p><strong>Example</strong> — You see <code>sha256sum sample.exe | tee hash.txt</code> then <code>file sample.exe</code> reporting “PE32 executable” — you write the hash into the report header before sandboxing.</p>
+</div>
 <h3>02 — The report’s static panel</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/02-report-static-panel.png" alt="Lab card: entropy packing, imphash, ssdeep, imports in static panel" loading="lazy" width="1618" height="902">
+  <img src="images/cheat-sheet/02-report-static-panel.png" alt="Lab card: entropy packing, imphash, ssdeep, imports in static panel" loading="lazy">
   <figcaption>THE REPORT'S STATIC PANEL — entropy/packing, imphash, ssdeep, imports</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — <b>Entropy</b> measures randomness (packing/encryption hint). <b>imphash</b> fingerprints the import table. <b>ssdeep</b> fuzzy-matches near-duplicates. <b>Imports</b> list claimed APIs.</p>
+  <p><strong>Why it matters on exam</strong> — Questions often ask what each field is for — and that high entropy alone ≠ malware.</p>
+  <p><strong>Example</strong> — Panel shows entropy 7.4, imphash matching a known packer family sample, imports including <code>WinHttpOpen</code> in a “calculator” binary — hunt/cluster lead, not a conviction.</p>
+</div>
 <h3>03 — PE/MZ + process-tree lineage</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/03-pe-mz-process-tree.png" alt="Lab card: PE MZ header and WINWORD to cmd or powershell process tree" loading="lazy" width="1604" height="1027">
+  <img src="images/cheat-sheet/03-pe-mz-process-tree.png" alt="Lab card: PE MZ header and WINWORD to cmd or powershell process tree" loading="lazy">
   <figcaption>PE/MZ + PROCESS-TREE LINEAGE (<code>WINWORD→cmd/powershell</code>)</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — PE files start with MZ (<code>4D 5A</code>). Lineage is who spawned whom in sandbox or EDR trees.</p>
+  <p><strong>Why it matters on exam</strong> — Spot impossible parents: Office spawning <code>cmd</code>/<code>powershell</code> is a classic Day-1 IOC pattern.</p>
+  <p><strong>Example</strong> — Sandbox tree: <code>WINWORD.EXE</code> → <code>cmd.exe</code> → encoded PowerShell — you flag the lineage and the child cmdline as evidence of macro-driven execution, not “Word is malware.”</p>
+</div>
 <h3>04 — MITRE ATT&amp;CK Day-1 subset</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/04-mitre-attack-day1.png" alt="Lab card: MITRE ATT and CK Day-1 technique subset from T1566.001 to T1053.005" loading="lazy" width="1550" height="652">
+  <img src="images/cheat-sheet/04-mitre-attack-day1.png" alt="Lab card: MITRE ATT and CK Day-1 technique subset from T1566.001 to T1053.005" loading="lazy">
   <figcaption>MITRE ATT&amp;CK Day-1 subset (T1566.001 … T1053.005)</figcaption>
 </figure>
-
-<!-- ========== B ========== -->
+<div class="term-box">
+  <p><strong>What it means</strong> — A short technique list covering initial access → execution → persistence you’ll map evidence to on exam day.</p>
+  <p><strong>Why it matters on exam</strong> — Map artifacts to technique IDs (e.g. scheduled task ↔ T1053.005) without inventing attacker steps.</p>
+  <p><strong>Example</strong> — Phish macro + Run key + scheduled task → cite T1566.001, T1547.001, T1053.005 with the Event IDs / paths that prove each.</p>
+</div>
 <h2 id="sec-b"><span class="section-label">B</span> Triage &amp; artifacts</h2>
-
 <h3>05 — Triage = selective copy</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/05-triage-collection-manifests.png" alt="Lab card: triage selective copy with collection_context uploads and log.json" loading="lazy" width="1589" height="397">
+  <img src="images/cheat-sheet/05-triage-collection-manifests.png" alt="Lab card: triage selective copy with collection_context uploads and log.json" loading="lazy">
   <figcaption>Triage = selective copy; <code>collection_context</code> / uploads / <code>log.json</code></figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — Triage grabs high-value paths (hive, EVTX, MFT, Prefetch…), not a full disk. <code>collection_context</code> and <code>log.json</code> document what landed.</p>
+  <p><strong>Why it matters on exam</strong> — Know triage ≠ imaging; exam answers often hinge on reading the manifest for gaps.</p>
+  <p><strong>Example</strong> — Manifest lists SOFTWARE hive but not SYSTEM — you note incomplete collection before concluding “no service persistence.”</p>
+</div>
 <h3>06 — Artifact category → path</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/06-artifact-locations.png" alt="Lab card: artifact category to path map for Registry EVTX MFT Prefetch WMI Tasks BITS Amcache" loading="lazy" width="958" height="977">
+  <img src="images/cheat-sheet/06-artifact-locations.png" alt="Lab card: artifact category to path map for Registry EVTX MFT Prefetch WMI Tasks BITS Amcache" loading="lazy">
   <figcaption>Artifact category → path (Registry, EVTX, MFT, Prefetch, WMI, Tasks, BITS, Amcache)</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — Cheat map from evidence type to default Windows path under a triage root.</p>
+  <p><strong>Why it matters on exam</strong> — Speed: “Where is Amcache / Prefetch / Tasks?” is pure path recall.</p>
+  <p><strong>Example</strong> — Asked for program execution evidence → Prefetch + Amcache paths; asked for WMI persistence → permanent event subscription store under WBEM.</p>
+</div>
 <h3>07 — Dirty SOFTWARE hive</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/07-dirty-software-hive.png" alt="Lab card: dirty SOFTWARE hive quiz — live copy plus transaction logs" loading="lazy" width="1522" height="337">
+  <img src="images/cheat-sheet/07-dirty-software-hive.png" alt="Lab card: dirty SOFTWARE hive quiz — live copy plus transaction logs" loading="lazy">
   <figcaption>Dirty SOFTWARE hive quiz — live copy + transaction logs</figcaption>
 </figure>
-
-<!-- ========== C ========== -->
+<div class="term-box">
+  <p><strong>What it means</strong> — A hive copied while Windows was running is <b>dirty</b> until transaction logs (<code>.LOG1</code>/<code>.LOG2</code>) are replayed with a forensic parser.</p>
+  <p><strong>Why it matters on exam</strong> — Correct answer is almost always: collect hive <b>and</b> logs — orphan hive alone may miss recent keys.</p>
+  <p><strong>Example</strong> — Quiz: live SOFTWARE without logs → incomplete; with hive + LOG1/LOG2 → parsers can reconcile dirty writes.</p>
+</div>
 <h2 id="sec-c"><span class="section-label">C</span> Cred dump / DCSync / IR response</h2>
-
 <div class="callout"><strong class="title">Detection framing</strong>
 <p>Credential-access tooling below is listed only as <b>what Security/Sysmon show</b> and <b>what to hunt</b>. Treat suspicious dump-tool command lines as <b>IOC strings</b> (e.g. process name + path + target process), not procedures to run.</p>
 </div>
-
 <h3>08 — DCSync vs legitimate replication</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/08-dcsync-vs-replication.png" alt="Lab card: DCSync versus legitimate DC to DC replication and krbtgt risk" loading="lazy" width="1535" height="343">
+  <img src="images/cheat-sheet/08-dcsync-vs-replication.png" alt="Lab card: DCSync versus legitimate DC to DC replication and krbtgt risk" loading="lazy">
   <figcaption>DCSync vs legitimate DC↔DC replication; krbtgt risk</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — Directory replication APIs used by DCs are also abused to pull secrets (DCSync). Legitimate traffic is DC↔DC; suspicious is non-DC / unexpected subject pulling replication rights.</p>
+  <p><strong>Why it matters on exam</strong> — Distinguish 4662 noise from “non-DC subject + replication GUIDs + odd 4624 source.”</p>
+  <p><strong>Example</strong> — Hunt: Security 4662 with replication GUIDs where Subject is a workstation admin account, not a DC computer account — escalate as DCSync-class activity.</p>
+</div>
 <h3>09 — No 4104 when dump is a native EXE</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/09-no-4104-native-dump.png" alt="Lab card: PowerShell 4104 absent for native EXE dump; hunt 4688 command line instead" loading="lazy" width="1555" height="384">
-  <figcaption>No 4104 when dump is native EXE; <b>4688 cmdline</b> is the primary detection surface (hunt patterns such as dump-tool name + LSASS target — not a how-to)</figcaption>
+  <img src="images/cheat-sheet/09-no-4104-native-dump.png" alt="Lab card: PowerShell 4104 absent for native EXE dump; hunt 4688 command line instead" loading="lazy">
+  <figcaption>No 4104 when dump is native EXE; <b>4688 / Sysmon 1 cmdline</b> is the primary detection surface (IOC patterns such as dump-tool name + LSASS target — not a how-to)</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — PowerShell script-block logging (4104) only sees script. A native dump EXE never enters the PS engine, so 4104 stays quiet.</p>
+  <p><strong>Why it matters on exam</strong> — Pivot to process-create cmdline (4688 / Sysmon 1) for IOC strings naming dump tools and LSASS as target — detection patterns only.</p>
+  <p><strong>Example</strong> — Exam trap: “No 4104 ⇒ no cred dump” is false. You hunt 4688/Sysmon 1 for process image + command-line tokens consistent with LSASS access tools.</p>
+</div>
 <h3>10 — DCSync impact &amp; remediation</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/10-dcsync-impact-remediation.png" alt="Lab card: DCSync impact requires domain-wide password reset; rotate krbtgt twice" loading="lazy" width="1552" height="332">
+  <img src="images/cheat-sheet/10-dcsync-impact-remediation.png" alt="Lab card: DCSync impact requires domain-wide password reset; rotate krbtgt twice" loading="lazy">
   <figcaption>DCSync impact: domain-wide reset; krbtgt twice</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — If domain secrets were pulled, assume credential material is burned; remediation includes widespread password resets and KRBTGT rotation.</p>
+  <p><strong>Why it matters on exam</strong> — Remember <b>krbtgt ×2</b>: one rotation leaves a previous key valid for ticket forgery windows.</p>
+  <p><strong>Example</strong> — Answer key: isolate, reset passwords domain-wide as scoped by IR plan, rotate krbtgt twice, hunt Golden Ticket return paths.</p>
+</div>
 <h3>11 — Domain compromise IR</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/11-domain-compromise-response.png" alt="Lab card: domain compromise IR — isolate AD, hunt return path, krbtgt twice" loading="lazy" width="1594" height="386">
+  <img src="images/cheat-sheet/11-domain-compromise-response.png" alt="Lab card: domain compromise IR — isolate AD, hunt return path, krbtgt twice" loading="lazy">
   <figcaption>Domain compromise IR: isolate AD, hunt return path, krbtgt×2</figcaption>
 </figure>
-
-<!-- ========== D ========== -->
+<div class="term-box">
+  <p><strong>What it means</strong> — IR play: contain AD trust boundary, find how they return (persistence + identities), then key rotation.</p>
+  <p><strong>Why it matters on exam</strong> — Order matters: contain → evidence → eradicate persistence → reset/rotate.</p>
+  <p><strong>Example</strong> — Scenario answer: take affected DCs offline from untrusted segments, preserve logs/memory, hunt persistence, then krbtgt×2 after footholds are gone.</p>
+</div>
 <h2 id="sec-d"><span class="section-label">D</span> Persistence</h2>
-
 <h3>12 — Layered persistence</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/12-layered-persistence.png" alt="Lab card: layered persistence categories — complete the list then remove" loading="lazy" width="2136" height="668">
+  <img src="images/cheat-sheet/12-layered-persistence.png" alt="Lab card: layered persistence categories — complete the list then remove" loading="lazy">
   <figcaption>Layered persistence categories; complete list then remove</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — Several independent mechanisms (Run key + service + task + WMI…). Removing one leaves others.</p>
+  <p><strong>Why it matters on exam</strong> — Exam: “list all then remove” — incomplete lists fail cleanup questions.</p>
+  <p><strong>Example</strong> — You document four footholds across Autoruns categories, confirm each with path+cmdline+time+account, then plan removal of all four.</p>
+</div>
 <h3>13 — Mutually restoring persistence</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/13-mutually-restoring-persistence.png" alt="Lab card: mutually restoring persistence requires coordinated removal window" loading="lazy" width="1977" height="471">
+  <img src="images/cheat-sheet/13-mutually-restoring-persistence.png" alt="Lab card: mutually restoring persistence requires coordinated removal window" loading="lazy">
   <figcaption>Mutually restoring persistence; coordinated removal window</figcaption>
 </figure>
-
-<!-- ========== E ========== -->
+<div class="term-box">
+  <p><strong>What it means</strong> — Mechanism A reinstalls B and B reinstalls A (or a watcher repairs both).</p>
+  <p><strong>Why it matters on exam</strong> — Need a coordinated window (or offline image) so both die together.</p>
+  <p><strong>Example</strong> — Task recreates a service binary and the service recreates the task — remove both in one change window while host is isolated.</p>
+</div>
 <h2 id="sec-e"><span class="section-label">E</span> Memory forensics / Volatility</h2>
-
 <h3>14 — Boot time + ProfileList vs sessions</h3>
 <p><code>windows.info</code> does <b>not</b> report when the machine last booted. The System process (<b>PID 4</b>) is created at boot and runs until shutdown, so its <b>creation time</b> is the boot time.</p>
 <pre><code>vol -f &lt;memory.raw&gt; windows.info
@@ -159,6 +237,11 @@ vol -f &lt;memory.raw&gt; windows.registry.printkey \
 vol -f &lt;memory.raw&gt; windows.sessions
 vol -f &lt;memory.raw&gt; windows.pstree</code></pre>
 
+<div class="term-box">
+  <p><strong>What it means</strong> — Boot time ≈ PID 4 create time. ProfileList = historical profiles; sessions = live at dump time.</p>
+  <p><strong>Why it matters on exam</strong> — Trick questions swap “ever logged in” with “logged in now.”</p>
+  <p><strong>Example</strong> — ProfileList shows alice + bob; sessions shows only alice → bob is historical, not present at capture.</p>
+</div>
 <h3>15 — pslist vs psscan vs pstree</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Plugin</th><th>What it does</th></tr></thead>
@@ -170,6 +253,11 @@ vol -f &lt;memory.raw&gt; windows.pstree</code></pre>
 </table></div>
 <p><b>Exam tip:</b> <code>pslist</code> ≠ <code>psscan</code> → look for hidden or exited processes (including DKOM-style unlink). Use <code>pstree</code> to spot impossible lineages.</p>
 
+<div class="term-box">
+  <p><strong>What it means</strong> — DKOM unlink = process still in memory but removed from the active list so <code>pslist</code> misses it; <code>psscan</code> can still find the EPROCESS.</p>
+  <p><strong>Why it matters on exam</strong> — Diff the two lists; then use <code>pstree</code> for “weird parent.”</p>
+  <p><strong>Example</strong> — <code>psscan</code> shows <code>malware.exe</code> PID 4242 absent from <code>pslist</code> → suspect unlink/hide; confirm with handles/netscan on that PID.</p>
+</div>
 <h3>16 — cmdline, dlllist, getsids, handles</h3>
 <div class="table-wrap"><table>
 <thead><tr><th>Plugin</th><th>What it shows</th><th>Why it matters</th></tr></thead>
@@ -181,6 +269,11 @@ vol -f &lt;memory.raw&gt; windows.pstree</code></pre>
 </tbody>
 </table></div>
 
+<div class="term-box">
+  <p><strong>What it means</strong> — Four “enrichment” plugins: args, modules, token SIDs, open objects (incl. named pipes).</p>
+  <p><strong>Why it matters on exam</strong> — S-1-5-18 on a user app = priv-esc lead; odd <code>wininet</code>/<code>winhttp</code> in notepad-like process = C2 lead.</p>
+  <p><strong>Example</strong> — <code>getsids</code> shows notepad as S-1-5-18; <code>handles</code> shows a suspicious named pipe between two PIDs — document both as hunt findings.</p>
+</div>
 <h3>17 — netscan + malfind</h3>
 <h4>windows.netscan</h4>
 <p>Recovers TCP and UDP endpoints, including sockets already <b>closed</b> by capture time. Shows local/remote address, port, connection state, and owning <b>PID</b>.</p>
@@ -191,6 +284,11 @@ vol -f &lt;memory.raw&gt; windows.pstree</code></pre>
 <p><b>Interesting hit</b> = RWX <b>and</b> MZ header <b>and</b> a process that has no reason to be doing it.</p>
 <p>Treat <b>malfind as leads to check, not conclusions to report</b>.</p>
 
+<div class="term-box">
+  <p><strong>What it means</strong> — netscan = sockets (incl. closed). malfind = private RWX; MZ at start strengthens the lead; JIT = common FP.</p>
+  <p><strong>Why it matters on exam</strong> — Never report “malware” from RWX alone — require context (process + MZ + behavior).</p>
+  <p><strong>Example</strong> — RWX+MZ inside <code>spoolsv.exe</code> with netscan showing rare remote IP → escalate; RWX in <code>chrome.exe</code> without MZ → likely JIT, deprioritize.</p>
+</div>
 <h3>18 — windows.modules vs windows.driverscan</h3>
 <p>These plugins do <b>not</b> report the same kind of thing.</p>
 <div class="table-wrap"><table>
@@ -211,44 +309,74 @@ vol -f &lt;memory.raw&gt; windows.pstree</code></pre>
 <p>A driver object whose <b>Start falls inside no loaded module</b> is worth investigating — something is executing in kernel space that the module list does not account for.</p>
 <p><b>Lab scope note:</b> full address mapping may be beyond a day’s exercise; still run both, record counts, and state clearly what the check does and does not support.</p>
 
+<div class="term-box">
+  <p><strong>What it means</strong> — modules = file-named images; driverscan = \Driver\ objects. Meaningful join is by address range.</p>
+  <p><strong>Why it matters on exam</strong> — Exam trap: “counts differ ⇒ rootkit” is wrong; “orphan Start address” is the real signal.</p>
+  <p><strong>Example</strong> — Driver Start 0xFFFFF80001234000 not inside any modules Base..Base+Size → investigate unaccounted kernel code.</p>
+</div>
 <h3>19 — What modules/driverscan showed</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/19-modules-driverscan-what-it-showed.png" alt="Lab card: what modules and driverscan showed versus did not — listing is not clean" loading="lazy" width="1575" height="405">
+  <img src="images/cheat-sheet/19-modules-driverscan-what-it-showed.png" alt="Lab card: what modules and driverscan showed versus did not — listing is not clean" loading="lazy">
   <figcaption>What modules/driverscan showed vs did not (listing ≠ clean)</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — Getting a listing only proves you ran the plugins — not that the host is clean.</p>
+  <p><strong>Why it matters on exam</strong> — State limitations: without address mapping you cannot claim “no hidden drivers.”</p>
+  <p><strong>Example</strong> — Lab write-up: “Ran modules + driverscan; counts recorded; address map deferred — listing alone ≠ clean.”</p>
+</div>
 <h3>20 — vadinfo: hollowing vs reflective</h3>
 <p><b>Two columns do the work, not one.</b></p>
 <p><code>windows.vadinfo</code> lists a process’s memory regions and, for each one, whether it is <b>backed by a file on disk</b>. That separates <b>file-backed code</b> from <b>private code</b>.</p>
 <p>It does <b>not</b> separate <b>process hollowing</b> from <b>reflective loading</b>, because <b>both are private</b>. For that you also check whether the <b>main image region is still intact</b>.</p>
 <p><b>Read both before you name a technique.</b></p>
 
+<div class="term-box">
+  <p><strong>What it means</strong> — Private VAD = not mapped from a file. Hollowing and reflective both present as private; check if the main image VAD is still healthy.</p>
+  <p><strong>Why it matters on exam</strong> — Don’t name “hollowing” from “private” alone.</p>
+  <p><strong>Example</strong> — Private RWX region + intact file-backed main image → lean reflective/injected; main image region replaced/empty while process name looks legit → lean hollowing hypothesis.</p>
+</div>
 <h3>21 — Injection vs hollowing vs reflective</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/21-injection-hollowing-reflective.png" alt="Lab card: DLL injection versus process hollowing versus reflective loading — not the same as side-load" loading="lazy" width="1565" height="1128">
+  <img src="images/cheat-sheet/21-injection-hollowing-reflective.png" alt="Lab card: DLL injection versus process hollowing versus reflective loading — not the same as side-load" loading="lazy">
   <figcaption>DLL injection vs hollowing vs reflective; ≠ side-load</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — Injection: foreign code into a living process. Hollowing: replace contents of a started process. Reflective: load PE from memory without normal loader. Side-load: drop a DLL where a trusted app will load it from disk search order.</p>
+  <p><strong>Why it matters on exam</strong> — Side-load is a <b>disk/search-order</b> story; the others are primarily <b>memory</b> stories.</p>
+  <p><strong>Example</strong> — File-backed suspicious DLL next to a signed EXE → side-load lead; private MZ in memory with intact main image → reflective/inject lead.</p>
+</div>
 <h3>22 — malfind dump vs dumpfiles</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/22-malfind-dump-vs-dumpfiles.png" alt="Lab card: private region use malfind dump; on-disk use dumpfiles" loading="lazy" width="1585" height="165">
+  <img src="images/cheat-sheet/22-malfind-dump-vs-dumpfiles.png" alt="Lab card: private region use malfind dump; on-disk use dumpfiles" loading="lazy">
   <figcaption>Private region → <code>malfind --dump</code>; on-disk → <code>dumpfiles</code> (forensic extraction plugins)</figcaption>
 </figure>
-
-<!-- ========== F ========== -->
+<div class="term-box">
+  <p><strong>What it means</strong> — Use <code>malfind --dump</code> to carve private injected regions; use <code>dumpfiles</code> when the image is (or was) file-backed and still referenced in memory.</p>
+  <p><strong>Why it matters on exam</strong> — Wrong plugin = empty or wrong artifact for the question.</p>
+  <p><strong>Example</strong> — Exam: “extract the injected PE with no path on disk” → malfind dump; “recover the DLL still mapped from System32” → dumpfiles.</p>
+</div>
 <h2 id="sec-f"><span class="section-label">F</span> NTFS / MFTECmd</h2>
-
 <h3>23 — NTFS 0x10 vs 0x30 (timestomp lead)</h3>
 <figure class="cheat-fig">
-  <img src="images/cheat-sheet/23-ntfs-timestomp-0x10-0x30.png" alt="Lab card: NTFS SI 0x10 versus FN 0x30 timestamps; timestomp pattern is a lead" loading="lazy" width="1914" height="452">
+  <img src="images/cheat-sheet/23-ntfs-timestomp-0x10-0x30.png" alt="Lab card: NTFS SI 0x10 versus FN 0x30 timestamps; timestomp pattern is a lead" loading="lazy">
   <figcaption>NTFS 0x10 vs 0x30; timestomp pattern is a lead</figcaption>
 </figure>
-
+<div class="term-box">
+  <p><strong>What it means</strong> — Attribute <code>0x10</code> (STANDARD_INFORMATION / SI) is what Explorer-style stamps often show; <code>0x30</code> (FILE_NAME / FN) is updated differently and is harder for simple stomps to keep consistent.</p>
+  <p><strong>Why it matters on exam</strong> — SI≪FN or other mismatches are a <b>timestomp lead</b>, not proof by themselves — correlate with $Us / Prefetch / logs.</p>
+  <p><strong>Example</strong> — SI Created far earlier than FN Created on the same record → flag timestomp lead; confirm with USN and parent folder times.</p>
+</div>
 <h3>24 — MFTECmd</h3>
 <p>Eric Zimmerman MFT parser — used for <code>$MFT</code> / <code>$J</code> (USN) timelines, create/modify/delete, and checking <b>0x10 vs 0x30</b> timestamps.</p>
 <p>Typical lab path:</p>
 <pre><code>C:\Training\Tools\EricZimmerman\MFTECmd.exe</code></pre>
 <p>Pairs with: Timeline Explorer, AmcacheParser, Hayabusa.</p>
+
+<div class="term-box">
+  <p><strong>What it means</strong> — Parses MFT/USN into CSV for timeline tools; exposes SI vs FN columns for stomping hunts.</p>
+  <p><strong>Why it matters on exam</strong> — Know which tool answers “0x10 vs 0x30” questions (MFTECmd + Timeline Explorer).</p>
+  <p><strong>Example</strong> — Export $MFT with MFTECmd → open in Timeline Explorer → filter SI/FN mismatches around the incident window.</p>
+</div>
 
 <div class="callout ok"><strong class="title">Quick exam anchors</strong>
 <ul>

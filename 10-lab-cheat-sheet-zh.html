@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 — 實驗室速查表 | DFIR Study Notes</title>
+<meta name="description" content="防禦取向 DFIR 溫習筆記 — 實驗室考試速查表（繁體中文），含截圖與術語說明。">
+<link rel="stylesheet" href="css/style.css">
+<link rel="alternate" hreflang="en" href="10-lab-cheat-sheet.html">
+<link rel="alternate" hreflang="zh-Hant" href="10-lab-cheat-sheet-zh.html">
+</head>
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">DFIR Study Notes</a>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links"
+      onclick="var n=document.getElementById('nav-links');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);">Menu</button>
+    <ul class="nav-links" id="nav-links"><li><a href="index.html">Home</a></li><li><a href="overview.html">Overview</a></li><li><a href="01-malware-analysis.html">01</a></li><li><a href="02-triage-collection.html">02</a></li><li><a href="03-credential-dumping.html">03</a></li><li><a href="04-persistence.html">04</a></li><li><a href="05-memory-forensics.html">05</a></li><li><a href="06-data-exfiltration.html">06</a></li><li><a href="07-web-logs.html">07</a></li><li><a href="08-incident-response.html">08</a></li><li><a href="10-lab-cheat-sheet.html">Cheat</a></li><li><a href="10-lab-cheat-sheet-zh.html" aria-current="page">中文</a></li><li><a href="pdfs/">PDFs</a></li></ul>
+  </div>
+</nav>
+<main class="wide-main">
+
+<header class="page-header">
+  <span class="badge">第 10 節</span>
+  <h1>實驗室速查表（繁體中文）</h1>
+  <p class="subtitle">課堂實驗考試卡 — 靜態分析、蒐證、憑證／IR、持久化、Volatility、NTFS</p>
+</header>
+<p class="lang-switch"><a href="10-lab-cheat-sheet.html" hreflang="en" lang="en">English</a> · <a href="10-lab-cheat-sheet-zh.html" hreflang="zh-Hant" lang="zh-Hant"><strong>繁體中文</strong></a></p>
+<p><a href="pdfs/10-lab-cheat-sheet-zh.pdf">下載中文 PDF</a> · <a href="pdfs/10-lab-cheat-sheet.pdf">English PDF</a> · <a href="overview.html">Overview</a> · <a href="index.html">Home</a></p>
+
+<div class="callout warn"><strong class="title">範圍提醒</strong><ul>
+<li>只談<strong>偵測與鑑識</strong> — 工具／指令字串是 <b>IOC／狩獵模式</b>，不是攻擊步驟。</li>
+<li>截圖僅作溫習；完整實驗包／zip <b>不會</b>在此發佈。</li>
+</ul></div>
+
+<nav class="cheat-toc" aria-label="速查表章節">
+  <strong>跳至</strong>
+  <ol>
+    <li><a href="#glossary">詞彙表</a></li>
+    <li><a href="#sec-a">A. 靜態／沙箱指令與 PE</a></li>
+    <li><a href="#sec-b">B. 分流蒐證與產物</a></li>
+    <li><a href="#sec-c">C. 憑證傾印／DCSync／IR</a></li>
+    <li><a href="#sec-d">D. 持久化</a></li>
+    <li><a href="#sec-e">E. 記憶體鑑識／Volatility</a></li>
+    <li><a href="#sec-f">F. NTFS／MFTECmd</a></li>
+  </ol>
+</nav>
+
+<h2 id="glossary">詞彙表（精簡）</h2>
+<div class="glossary">
+<dl>
+  <dt>Entropy／打包（packing）</dt><dd>位元組隨機度偏高（常 &gt;7.0）暗示可能被壓縮／加密／打包 — 只是線索，不是惡意軟體證明。</dd>
+  <dt>imphash</dt><dd>依 PE 匯入表順序／名稱算出的雜湊；相近 imphash → 同一工具鏈／家族的樞紐候選。</dd>
+  <dt>ssdeep</dt><dd>模糊雜湊；近似匹配可把只改了幾個位元組的變種歸群。</dd>
+  <dt>Imports（匯入）</dt><dd>PE 宣稱會呼叫的 API（網路、加密、程序）。與宣稱程式類型不符的匯入是狩獵線索。</dd>
+  <dt>PE／MZ</dt><dd>Windows 可執行檔格式；檔案或記憶體開頭的 <code>4D 5A</code>（「MZ」）標示 PE。</dd>
+  <dt>程序樹血緣（lineage）</dt><dd>父→子鏈（如 <code>WINWORD→cmd</code>）。不合理的父行程是強 IOC。</dd>
+  <dt>Triage（分流蒐證）</dt><dd>選擇性複製高價值產物 — 不是整碟映像。</dd>
+  <dt>collection_context／log.json</dt><dd>紀錄蒐證器抓了甚麼、何時、從哪部主機／路徑的清單。</dd>
+  <dt>Dirty hive + .LOG1／.LOG2</dt><dd>系統仍在執行時複製的登錄巢；須連同交易紀錄一併蒐集以還原一致性。</dd>
+  <dt>DCSync</dt><dd>濫用目錄複寫 API 拉取憑證材料；對比正常的 DC↔DC 複寫。</dd>
+  <dt>krbtgt</dt><dd>網域 KRBTGT 帳戶；懷疑票證濫用後須<strong>旋轉兩次</strong>，令舊金鑰與中間金鑰都失效。</dd>
+  <dt>Event 4104</dt><dd>PowerShell 指令碼區塊記錄；當傾印工具是原生 EXE（不經 PS 引擎）時不會出現。</dd>
+  <dt>4688／Sysmon 1</dt><dd>程序建立事件（含命令列）— 原生傾印工具 IOC 字串的主要狩獵面。</dd>
+  <dt>分層持久化（layered）</dt><dd>多個獨立立足點；只清一個，其餘仍在。</dd>
+  <dt>互相還原（mutually restoring）</dt><dd>機制會彼此重裝；需要協調的清除視窗。</dd>
+  <dt>PID 4 開機時間</dt><dd>System 程序建立時間 ≈ 上次開機；單靠 <code>windows.info</code> 得不到開機時間。</dd>
+  <dt>ProfileList vs sessions</dt><dd>歷史曾登入 vs 擷取當下仍登入者。</dd>
+  <dt>pslist／psscan／pstree</dt><dd>作用中清單 vs 記憶體掃描（隱藏／已結束、DKOM unlink）vs 父子樹。</dd>
+  <dt>DKOM unlink</dt><dd>操縱核心物件，把程序從作用中清單解除鏈結，令 <code>pslist</code> 看不到。</dd>
+  <dt>getsids／S-1-5-18</dt><dd>程序權杖 SID；<code>S-1-5-18</code> = 本機 SYSTEM。</dd>
+  <dt>malfind</dt><dd>找私人 RWX 區；怪異程序內 RWX+MZ = 線索（JIT 會誤報）。</dd>
+  <dt>modules vs driverscan</dt><dd>已載入映像 vs 驅動物件 — 用<strong>位址</strong>對應，不是名稱／數量。</dd>
+  <dt>vadinfo 私人 vs 檔案對應</dt><dd>私人＝無檔案映射；挖空與反射載入都呈私人。</dd>
+  <dt>Injection／hollowing／reflective／side-load</dt><dd>不同記憶體／磁碟模式 — 勿與 DLL 搜尋順序側載混淆。</dd>
+  <dt>malfind --dump vs dumpfiles</dt><dd>擷取私人注入區 vs 從記憶體抽出仍有檔案對應的映像。</dd>
+  <dt>NTFS 0x10 vs 0x30</dt><dd>STANDARD_INFORMATION vs FILE_NAME 時間戳；SI／FN 不一致是時間戳竄改<strong>線索</strong>。</dd>
+  <dt>MFTECmd</dt><dd>Eric Zimmerman 的 <code>$MFT</code>／USN 時間線與 0x10 vs 0x30 檢查工具。</dd>
+</dl>
+</div>
+
+<h2 id="sec-a"><span class="section-label">A</span> 靜態／沙箱指令與 PE</h2>
+<h3>01 — 各指令做甚麼</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/01-what-each-command-does.png" alt="實驗卡：mkdir、sha256sum 配 tee、file、ls -lh 樣本分流" loading="lazy">
+  <figcaption>各指令用途 — <code>mkdir</code>、<code>sha256sum|tee</code>、<code>file</code>、<code>ls -lh</code></figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 基本靜態分流：建工作目錄、記錄 SHA-256（用 <code>tee</code> 留底）、辨認檔案類型、記下大小。</p>
+  <p><strong>考試為何重要</strong> — 考試期望安全順序：<b>先雜湊</b>，之後所有筆記都綁定同一樣本身分。</p>
+  <p><strong>例子</strong> — 見到 <code>sha256sum sample.exe | tee hash.txt</code>，再 <code>file</code> 顯示「PE32 executable」— 把雜湊寫進報告開頭才做沙箱。</p>
+</div>
+<h3>02 — 報告的靜態面板</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/02-report-static-panel.png" alt="實驗卡：entropy packing、imphash、ssdeep、imports" loading="lazy">
+  <figcaption>報告靜態面板 — entropy／packing、imphash、ssdeep、imports</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — <b>Entropy</b> 量度隨機度（打包／加密提示）。<b>imphash</b> 指紋化匯入表。<b>ssdeep</b> 模糊匹配近似複本。<b>Imports</b> 列出宣稱 API。</p>
+  <p><strong>考試為何重要</strong> — 常考各欄位用途 — 以及高 entropy 本身 ≠ 惡意。</p>
+  <p><strong>例子</strong> — 面板顯示 entropy 7.4、imphash 接近已知打包家族、「計算機」卻匯入 <code>WinHttpOpen</code> — 是狩獵／歸群線索，不是定罪。</p>
+</div>
+<h3>03 — PE／MZ + 程序樹血緣</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/03-pe-mz-process-tree.png" alt="實驗卡：PE MZ 標頭與 WINWORD 到 cmd／powershell 程序樹" loading="lazy">
+  <figcaption>PE／MZ + 程序樹血緣（<code>WINWORD→cmd/powershell</code>）</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — PE 以 MZ（<code>4D 5A</code>）開頭。血緣是沙箱或 EDR 樹上誰生出誰。</p>
+  <p><strong>考試為何重要</strong> — 抓不合理父行程：Office 生出 <code>cmd</code>／<code>powershell</code> 是經典 Day-1 IOC。</p>
+  <p><strong>例子</strong> — 沙箱樹：<code>WINWORD.EXE</code> → <code>cmd.exe</code> → 編碼 PowerShell — 標記血緣與子命令列為巨集驅動執行證據，而非「Word 是惡意軟體」。</p>
+</div>
+<h3>04 — MITRE ATT&amp;CK Day-1 子集</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/04-mitre-attack-day1.png" alt="實驗卡：MITRE ATT&CK Day-1 技術子集" loading="lazy">
+  <figcaption>MITRE ATT&amp;CK Day-1 子集（T1566.001 … T1053.005）</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 涵蓋初始存取→執行→持久化的短技術清單，考試用來對應證據。</p>
+  <p><strong>考試為何重要</strong> — 把產物對到技術 ID（如排程工作 ↔ T1053.005），不要編造攻擊步驟。</p>
+  <p><strong>例子</strong> — 釣魚巨集 + Run key + 排程工作 → 引用 T1566.001、T1547.001、T1053.005，並附上證明的 Event ID／路徑。</p>
+</div>
+<h2 id="sec-b"><span class="section-label">B</span> 分流蒐證與產物</h2>
+<h3>05 — Triage = 選擇性複製</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/05-triage-collection-manifests.png" alt="實驗卡：分流選擇性複製與 collection_context、log.json" loading="lazy">
+  <figcaption>Triage = 選擇性複製；<code>collection_context</code>／uploads／<code>log.json</code></figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 分流抓高價值路徑（hive、EVTX、MFT、Prefetch…），不是整碟。<code>collection_context</code> 與 <code>log.json</code> 記錄實際落地內容。</p>
+  <p><strong>考試為何重要</strong> — 要懂 triage ≠ imaging；考題常靠讀清單找缺口。</p>
+  <p><strong>例子</strong> — 清單有 SOFTWARE 卻沒 SYSTEM — 在斷言「無服務持久化」前先記下蒐證不完整。</p>
+</div>
+<h3>06 — 產物類別 → 路徑</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/06-artifact-locations.png" alt="實驗卡：產物類別到路徑對照" loading="lazy">
+  <figcaption>產物類別 → 路徑（Registry、EVTX、MFT、Prefetch、WMI、Tasks、BITS、Amcache）</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 證據類型對應預設 Windows 路徑的速查圖。</p>
+  <p><strong>考試為何重要</strong> — 速度題：「Amcache／Prefetch／Tasks 在哪？」純路徑記憶。</p>
+  <p><strong>例子</strong> — 問程式執行證據 → Prefetch + Amcache；問 WMI 持久化 → WBEM 下永久事件訂閱存放處。</p>
+</div>
+<h3>07 — Dirty SOFTWARE hive</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/07-dirty-software-hive.png" alt="實驗卡：dirty SOFTWARE hive 測驗 — 動態複製加交易紀錄" loading="lazy">
+  <figcaption>Dirty SOFTWARE hive 測驗 — 動態複製 + 交易紀錄</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — Windows 仍在執行時複製的巢是 <b>dirty</b>，須用鑑識解析器重播交易紀錄（<code>.LOG1</code>／<code>.LOG2</code>）。</p>
+  <p><strong>考試為何重要</strong> — 正確答案幾乎總是：巢 <b>與</b> LOG 一併蒐集 — 只有巢可能漏近期機碼。</p>
+  <p><strong>例子</strong> — 測驗：動態 SOFTWARE 無 LOG → 不完整；hive + LOG1／LOG2 → 解析器可協調 dirty 寫入。</p>
+</div>
+<h2 id="sec-c"><span class="section-label">C</span> 憑證傾印／DCSync／IR 應變</h2>
+<div class="callout"><strong class="title">偵測視角</strong>
+<p>以下憑證存取工具只談 <b>Security／Sysmon 會顯示甚麼</b>與 <b>要獵甚麼</b>。可疑傾印工具命令列視為 <b>IOC 字串</b>（程序名 + 路徑 + 目標程序等），不是執行步驟。</p>
+</div>
+<h3>08 — DCSync vs 合法複寫</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/08-dcsync-vs-replication.png" alt="實驗卡：DCSync 對比合法 DC 對 DC 複寫與 krbtgt 風險" loading="lazy">
+  <figcaption>DCSync vs 合法 DC↔DC 複寫；krbtgt 風險</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — DC 使用的目錄複寫 API 也可被濫用拉取機密（DCSync）。合法流量是 DC↔DC；可疑是非 DC／異常主體行使複寫權。</p>
+  <p><strong>考試為何重要</strong> — 要把 4662 噪音與「非 DC 主體 + 複寫 GUID + 異常 4624 來源」分開。</p>
+  <p><strong>例子</strong> — 狩獵：Security 4662 帶複寫 GUID，Subject 是工作站系統管理員而非 DC 電腦帳戶 — 升級為 DCSync 類活動。</p>
+</div>
+<h3>09 — 原生 EXE 傾印時不會有 4104</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/09-no-4104-native-dump.png" alt="實驗卡：原生 EXE 傾印沒有 PowerShell 4104；改獵 4688 命令列" loading="lazy">
+  <figcaption>原生 EXE 傾印無 4104；主要偵測面是 <b>4688／Sysmon 1 命令列</b>（IOC 模式如工具名 + LSASS 目標 — 非操作教學）</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — PowerShell 指令碼區塊記錄（4104）只看腳本。原生傾印 EXE 不進 PS 引擎，故 4104 安靜。</p>
+  <p><strong>考試為何重要</strong> — 改看程序建立命令列（4688／Sysmon 1）尋找命名傾印工具與 LSASS 目標的 IOC 字串 — 僅偵測模式。</p>
+  <p><strong>例子</strong> — 考試陷阱：「沒有 4104 ⇒ 沒有憑證傾印」為假。應獵 4688／Sysmon 1 中與 LSASS 存取工具一致的映像與命令列標記。</p>
+</div>
+<h3>10 — DCSync 影響與補救</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/10-dcsync-impact-remediation.png" alt="實驗卡：DCSync 影響需網域級重設密碼；krbtgt 旋轉兩次" loading="lazy">
+  <figcaption>DCSync 影響：網域級重設；krbtgt 兩次</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 若網域機密被拉取，視為憑證材料已燒毀；補救含大規模重設密碼與 KRBTGT 旋轉。</p>
+  <p><strong>考試為何重要</strong> — 記住 <b>krbtgt ×2</b>：只轉一次會留下仍可用於偽票的舊金鑰視窗。</p>
+  <p><strong>例子</strong> — 答題要點：隔離、依 IR 計劃網域級重設密碼、旋轉 krbtgt 兩次、狩獵 Golden Ticket 回流路徑。</p>
+</div>
+<h3>11 — 網域淪陷 IR</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/11-domain-compromise-response.png" alt="實驗卡：網域淪陷 IR — 隔離 AD、狩獵回流、krbtgt 兩次" loading="lazy">
+  <figcaption>網域淪陷 IR：隔離 AD、狩獵回流路徑、krbtgt×2</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — IR 劇本：遏制 AD 信任邊界、找出回流方式（持久化 + 身分），再做金鑰旋轉。</p>
+  <p><strong>考試為何重要</strong> — 順序：遏制 → 保全證據 → 清除持久化 → 重設／旋轉。</p>
+  <p><strong>例子</strong> — 情境答：把受影響 DC 從不可信網段隔離、保全日誌／記憶體、獵持久化，立足點清完後才 krbtgt×2。</p>
+</div>
+<h2 id="sec-d"><span class="section-label">D</span> 持久化</h2>
+<h3>12 — 分層持久化</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/12-layered-persistence.png" alt="實驗卡：分層持久化類別 — 先列齊再清除" loading="lazy">
+  <figcaption>分層持久化類別；先列齊再清除</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 多個獨立機制（Run key + 服務 + 工作 + WMI…）。清一個其餘仍在。</p>
+  <p><strong>考試為何重要</strong> — 考試：「先列齊再清」— 清單不全會答錯清理題。</p>
+  <p><strong>例子</strong> — 在 Autoruns 類別記下四個立足點，各以路徑+命令列+時間+帳戶確認，再計劃一次清四個。</p>
+</div>
+<h3>13 — 互相還原的持久化</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/13-mutually-restoring-persistence.png" alt="實驗卡：互相還原持久化需要協調清除視窗" loading="lazy">
+  <figcaption>互相還原持久化；協調清除視窗</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 機制 A 重裝 B、B 重裝 A（或監視者修復兩者）。</p>
+  <p><strong>考試為何重要</strong> — 需要協調視窗（或離線映像）令兩者同時消失。</p>
+  <p><strong>例子</strong> — 工作重造服務二進位、服務又重造工作 — 主機隔離下在同一變更視窗清兩者。</p>
+</div>
+<h2 id="sec-e"><span class="section-label">E</span> 記憶體鑑識／Volatility</h2>
+<h3>14 — 開機時間 + ProfileList vs sessions</h3>
+<p><code>windows.info</code> <b>不會</b>直接告訴你上次開機時間。System 程序（<b>PID 4</b>）在開機時建立、關機才結束，因此其<strong>建立時間</strong>就是開機時間。</p>
+<pre><code>vol -f &lt;memory.raw&gt; windows.info
+vol -f &lt;memory.raw&gt; windows.pslist</code></pre>
+<p>用 <code>pslist</code>（或 <code>pstree</code>）讀 PID 4／System 建立時間。</p>
+<h4>ProfileList vs windows.sessions</h4>
+<p>兩者回答的<strong>不是同一個問題</strong>：</p>
+<div class="table-wrap"><table>
+<thead><tr><th>外掛／機碼</th><th>回答甚麼</th></tr></thead>
+<tbody>
+<tr><td><b>ProfileList</b>（<code>HKLM\...\ProfileList</code>）</td><td>曾<strong>登入過</strong>的每個帳戶 — 歷史紀錄</td></tr>
+<tr><td><b>windows.sessions</b></td><td>擷取<strong>當下</strong>仍登入者</td></tr>
+</tbody>
+</table></div>
+<pre><code>vol -f &lt;memory.raw&gt; windows.registry.hivelist
+vol -f &lt;memory.raw&gt; windows.registry.printkey \
+  --key "Microsoft\Windows NT\CurrentVersion\ProfileList"
+vol -f &lt;memory.raw&gt; windows.sessions
+vol -f &lt;memory.raw&gt; windows.pstree</code></pre>
+
+<div class="term-box">
+  <p><strong>意思</strong> — 開機時間 ≈ PID 4 建立時間。ProfileList = 歷史設定檔；sessions = 傾印當下仍登入。</p>
+  <p><strong>考試為何重要</strong> — 陷阱題會把「曾經登入」與「現在登入」對調。</p>
+  <p><strong>例子</strong> — ProfileList 有 alice + bob；sessions 只有 alice → bob 是歷史，擷取時不在。</p>
+</div>
+<h3>15 — pslist vs psscan vs pstree</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>外掛</th><th>做甚麼</th></tr></thead>
+<tbody>
+<tr><td><b>windows.pslist</b></td><td>走 OS 的<strong>作用中程序清單</strong>。對正常執行中的程序又快又準。</td></tr>
+<tr><td><b>windows.psscan</b></td><td>掃描<strong>原始記憶體</strong>找程序結構，不信任清單。可找到已<strong>結束</strong>，以及被刻意<strong>解除鏈結</strong>隱藏的程序。</td></tr>
+<tr><td><b>windows.pstree</b></td><td>以<strong>父子樹</strong>顯示。多數問題在此浮現，因惡意常有不合理父行程。</td></tr>
+</tbody>
+</table></div>
+<p><b>考試提示：</b><code>pslist</code> ≠ <code>psscan</code> → 找隱藏或已結束程序（含 DKOM 式 unlink）。用 <code>pstree</code> 抓不可能血緣。</p>
+
+<div class="term-box">
+  <p><strong>意思</strong> — DKOM unlink = 程序仍在記憶體，但從作用中清單移除，使 <code>pslist</code> 漏掉；<code>psscan</code> 仍可能找到 EPROCESS。</p>
+  <p><strong>考試為何重要</strong> — 對兩個清單做差集；再用 <code>pstree</code> 找「怪父」。</p>
+  <p><strong>例子</strong> — <code>psscan</code> 有 <code>malware.exe</code> PID 4242 但 <code>pslist</code> 沒有 → 懷疑 unlink／隱藏；用該 PID 的 handles／netscan 確認。</p>
+</div>
+<h3>16 — cmdline、dlllist、getsids、handles</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>外掛</th><th>顯示甚麼</th><th>為何重要</th></tr></thead>
+<tbody>
+<tr><td><b>windows.cmdline</b></td><td>各程序的完整啟動命令列</td><td>編碼／混淆參數是強指標</td></tr>
+<tr><td><b>windows.dlllist</b></td><td>各程序已載入模組（DLL）</td><td>無理由連網的程序載入網路 DLL 是知名指標</td></tr>
+<tr><td><b>windows.getsids</b></td><td>程序持有的 SID — 以誰的權限執行</td><td>平常低權限程式以 <b>SYSTEM</b> 跑代表已提權。SID <code>S-1-5-18</code> 是內建 SYSTEM（本機最高權）</td></tr>
+<tr><td><b>windows.handles</b></td><td>程序開啟的物件：檔案、登錄、命名管道</td><td>管道是同機惡意元件彼此通訊的一種方式</td></tr>
+</tbody>
+</table></div>
+
+<div class="term-box">
+  <p><strong>意思</strong> — 四個「 enrichment」外掛：參數、模組、權杖 SID、開啟物件（含命名管道）。</p>
+  <p><strong>考試為何重要</strong> — 使用者程式出現 S-1-5-18 = 提權線索；記事本類程序出現異常 <code>wininet</code>／<code>winhttp</code> = C2 線索。</p>
+  <p><strong>例子</strong> — <code>getsids</code> 顯示 notepad 為 S-1-5-18；<code>handles</code> 見兩個 PID 間可疑命名管道 — 兩者都記為狩獵發現。</p>
+</div>
+<h3>17 — netscan + malfind</h3>
+<h4>windows.netscan</h4>
+<p>還原 TCP／UDP 端點，包括擷取時已<strong>關閉</strong>的通訊端。顯示本機／遠端位址、埠、連線狀態與擁有 <b>PID</b>。</p>
+<h4>windows.malware.malfind</h4>
+<p>標記<strong>可執行且可寫</strong>、但<strong>沒有磁碟檔案對應</strong>的記憶體。此組合是注入或反射載入程式碼的特徵。外掛會印出開頭十六進位，方便看是否以 <code>4D 5A</code>（MZ）開始。</p>
+<h4>誤報</h4>
+<p>部分合法軟體真的會配置 <b>RWX</b> — 任何有 JIT 編譯器者（瀏覽器、.NET 執行階段）。</p>
+<p><b>值得跟進</b> = RWX <b>且</b> MZ 標頭 <b>且</b> 該程序沒理由這樣做。</p>
+<p>把 <b>malfind 當線索，不是結論</b>。</p>
+
+<div class="term-box">
+  <p><strong>意思</strong> — netscan = 通訊端（含已關閉）。malfind = 私人 RWX；開頭 MZ 加強線索；JIT = 常見誤報。</p>
+  <p><strong>考試為何重要</strong> — 切勿單憑 RWX 報「惡意」— 要程序 + MZ + 行為脈絡。</p>
+  <p><strong>例子</strong> — <code>spoolsv.exe</code> 內 RWX+MZ 且 netscan 有罕見遠端 IP → 升級；<code>chrome.exe</code> 有 RWX 無 MZ → 多半 JIT，降低優先。</p>
+</div>
+<h3>18 — windows.modules vs windows.driverscan</h3>
+<p>這兩個外掛報告的<strong>不是同一類東西</strong>。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>外掛</th><th>走過甚麼</th><th>如何命名</th></tr></thead>
+<tbody>
+<tr><td><b>windows.modules</b></td><td>核心的<strong>已載入模組映像</strong>清單</td><td>以<strong>檔名</strong> — <code>ntoskrnl.exe</code>、<code>hal.dll</code>、<code>\SystemRoot\system32\</code> 路徑</td></tr>
+<tr><td><b>windows.driverscan</b></td><td>掃描記憶體找<strong>驅動物件</strong></td><td>在<strong>裝置命名空間</strong> — <code>\Driver\HTTP</code>、<code>\Driver\00000311</code></td></tr>
+</tbody>
+</table></div>
+<p>一個映像可擁有多個驅動物件；掃描也可能重複找到同一物件。</p>
+<h4>證明／不證明甚麼</h4>
+<ul>
+<li>比較<strong>兩個數量</strong>證明不了甚麼 — 它們數的是不同種類。</li>
+<li>比較<strong>兩個名稱清單</strong>證明不了甚麼 — <code>ntoskrnl.exe</code> 與 <code>\Driver\HTTP</code> 不在同一命名空間，名稱不會對上。</li>
+</ul>
+<h4>有意義的比較</h4>
+<p>用<strong>位址</strong>對應：取 <code>driverscan</code> 每個驅動物件的 <b>Start</b>，找 <code>modules</code> 中 <b>Base … Base+Size</b> 涵蓋它的模組。</p>
+<p>Start 落在任何已載入模組之外的驅動物件值得調查 — 核心空間有模組清單解釋不了的執行碼。</p>
+<p><b>實驗範圍註：</b>完整位址對應可能超出單日練習；仍應兩者都跑、記錄數量，並清楚說明檢查能／不能支持甚麼。</p>
+
+<div class="term-box">
+  <p><strong>意思</strong> — modules = 檔名映像；driverscan = \Driver\ 物件。有意義的接合是位址範圍。</p>
+  <p><strong>考試為何重要</strong> — 考試陷阱：「數量不同 ⇒ rootkit」錯；「孤兒 Start 位址」才是訊號。</p>
+  <p><strong>例子</strong> — Driver Start 0xFFFFF80001234000 不在任何 modules Base..Base+Size → 調查無法解釋的核心碼。</p>
+</div>
+<h3>19 — modules／driverscan 實際顯示了甚麼</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/19-modules-driverscan-what-it-showed.png" alt="實驗卡：modules 與 driverscan 顯示與未顯示 — 列出不等於乾淨" loading="lazy">
+  <figcaption>modules／driverscan 顯示 vs 未顯示（列出 ≠ 乾淨）</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 有清單只證明你跑過外掛 — 不證明主機乾淨。</p>
+  <p><strong>考試為何重要</strong> — 要寫限制：沒做位址對應就不能說「無隱藏驅動」。</p>
+  <p><strong>例子</strong> — 實驗報告：「已跑 modules + driverscan；記錄數量；位址圖暫緩 — 單有清單 ≠ 乾淨。」</p>
+</div>
+<h3>20 — vadinfo：挖空 vs 反射</h3>
+<p><b>兩欄一起看，不是只看一欄。</b></p>
+<p><code>windows.vadinfo</code> 列出程序記憶體區域，並標示是否<strong>由磁碟檔案對應</strong>。這分開<strong>檔案對應碼</strong>與<strong>私人碼</strong>。</p>
+<p>它<strong>無法</strong>單憑此分開<strong>程序挖空</strong>與<strong>反射載入</strong>，因為<strong>兩者都是私人</strong>。還要檢查<strong>主映像區域是否仍完整</strong>。</p>
+<p><b>命名技術前先讀兩邊。</b></p>
+
+<div class="term-box">
+  <p><strong>意思</strong> — 私人 VAD = 非由檔案映射。挖空與反射都呈私人；還要看主映像 VAD 是否健康。</p>
+  <p><strong>考試為何重要</strong> — 不要只因「私人」就寫「挖空」。</p>
+  <p><strong>例子</strong> — 私人 RWX + 主映像仍有檔案對應 → 偏反射／注入；程序名看似合法但主映像區被換／空 → 偏挖空假說。</p>
+</div>
+<h3>21 — Injection vs hollowing vs reflective</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/21-injection-hollowing-reflective.png" alt="實驗卡：DLL 注入、程序挖空、反射載入 — 不等於側載" loading="lazy">
+  <figcaption>DLL injection vs hollowing vs reflective；≠ side-load</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — Injection：把外來碼放進仍活的程序。Hollowing：替換已啟動程序的內容。Reflective：不經正常載入器從記憶體載入 PE。Side-load：把 DLL 放到受信任程式會依搜尋順序載入的磁碟位置。</p>
+  <p><strong>考試為何重要</strong> — Side-load 是<strong>磁碟／搜尋順序</strong>故事；其餘主要是<strong>記憶體</strong>故事。</p>
+  <p><strong>例子</strong> — 可疑 DLL 以檔案形式放在已簽署 EXE 旁 → 側載線索；記憶體私人 MZ 且主映像完整 → 反射／注入線索。</p>
+</div>
+<h3>22 — malfind dump vs dumpfiles</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/22-malfind-dump-vs-dumpfiles.png" alt="實驗卡：私人區用 malfind dump；磁碟對應用 dumpfiles" loading="lazy">
+  <figcaption>私人區 → <code>malfind --dump</code>；磁碟對應 → <code>dumpfiles</code>（鑑識擷取外掛）</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 用 <code>malfind --dump</code> 擷取私人注入區；當映像（曾）有檔案對應且仍被記憶體引用時用 <code>dumpfiles</code>。</p>
+  <p><strong>考試為何重要</strong> — 選錯外掛會得到空或不符題意的產物。</p>
+  <p><strong>例子</strong> — 考試：「抽出無磁碟路徑的注入 PE」→ malfind dump；「還原仍由 System32 映射的 DLL」→ dumpfiles。</p>
+</div>
+<h2 id="sec-f"><span class="section-label">F</span> NTFS／MFTECmd</h2>
+<h3>23 — NTFS 0x10 vs 0x30（時間戳竄改線索）</h3>
+<figure class="cheat-fig">
+  <img src="images/cheat-sheet/23-ntfs-timestomp-0x10-0x30.png" alt="實驗卡：NTFS SI 0x10 對 FN 0x30 時間戳；timestomp 模式是線索" loading="lazy">
+  <figcaption>NTFS 0x10 vs 0x30；timestomp 模式是線索</figcaption>
+</figure>
+<div class="term-box">
+  <p><strong>意思</strong> — 屬性 <code>0x10</code>（STANDARD_INFORMATION／SI）常是 Explorer 類時間戳所見；<code>0x30</code>（FILE_NAME／FN）更新方式不同，簡單竄改較難兩邊一致。</p>
+  <p><strong>考試為何重要</strong> — SI≪FN 等不一致是<strong>timestomp 線索</strong>，本身非證明 — 要對 $J／Prefetch／日誌交叉。</p>
+  <p><strong>例子</strong> — 同一紀錄 SI Created 遠早於 FN Created → 標記時間戳竄改線索；用 USN 與父資料夾時間確認。</p>
+</div>
+<h3>24 — MFTECmd</h3>
+<p>Eric Zimmerman 的 MFT 解析器 — 用於 <code>$MFT</code>／<code>$J</code>（USN）時間線、建立／修改／刪除，以及檢查 <b>0x10 vs 0x30</b> 時間戳。</p>
+<p>典型實驗路徑：</p>
+<pre><code>C:\Training\Tools\EricZimmerman\MFTECmd.exe</code></pre>
+<p>常搭配：Timeline Explorer、AmcacheParser、Hayabusa。</p>
+
+<div class="term-box">
+  <p><strong>意思</strong> — 把 MFT／USN 解析成 CSV 供時間線工具；露出 SI vs FN 欄位供時間戳狩獵。</p>
+  <p><strong>考試為何重要</strong> — 要知道「0x10 vs 0x30」題用哪個工具（MFTECmd + Timeline Explorer）。</p>
+  <p><strong>例子</strong> — 用 MFTECmd 匯出 $MFT → 在 Timeline Explorer 開啟 → 過濾事件視窗附近的 SI／FN 不一致。</p>
+</div>
+
+<div class="callout ok"><strong class="title">考試速記錨點</strong>
+<ul>
+<li>靜態順序：雜湊 → <code>file</code> → entropy／imphash → imports → 沙箱血緣</li>
+<li>Dirty hive → 蒐集巢 <b>與</b> 交易紀錄</li>
+<li>原生傾印 EXE → 無 PS 4104；獵 <b>4688／Sysmon 1</b> 命令列 IOC</li>
+<li>DCSync 補救 → 網域級重設 + <b>krbtgt ×2</b></li>
+<li><code>pslist</code> ≠ <code>psscan</code>；malfind = 線索（RWX+MZ+怪異程序）</li>
+<li>modules vs driverscan → 用<strong>位址</strong>對應，不是名稱／數量</li>
+<li>vadinfo：私人 vs 檔案對應；挖空 + 反射都是私人</li>
+<li>Timestomp 線索：SI（<code>0x10</code>）vs FN（<code>0x30</code>）不一致</li>
+</ul></div>
+
+</main>
+<footer class="site-footer">
+  <p><span class="tag">DFIR Study Notes — detection focus</span></p>
+  <p>Educational / defensive material only. No attack how-tos.</p>
+</footer>
+</body>
+</html>
